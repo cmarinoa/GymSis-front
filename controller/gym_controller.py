@@ -1,14 +1,18 @@
+from tkinter import messagebox
+
 from view.login_view import LoginView
 from view.register_view import RegisterView
 from view.menu_view import MenuView
 from view.sessions_view import SessionsView
 from view.exercises_view import ExercisesView
+from model.gym_model import login_user, register_user
 
 class AppController:
     def __init__(self, root):
         self.root = root
         self.current_view = None
         self.current_user = None
+        self.current_token = None
 
         self.show_login()
 
@@ -21,9 +25,7 @@ class AppController:
         view = LoginView(self.root)
 
         view.signup_label.bind("<Button-1>", lambda e: self.show_register())
-        view.signin_button.configure(
-            command=lambda: self.show_menu("UsuarioDemo")
-        )
+        view.signin_button.configure(command=lambda: self.handle_login(view))
 
         self.current_view = view
         view.pack(fill="both", expand=True)
@@ -33,7 +35,7 @@ class AppController:
         view = RegisterView(self.root)
 
         view.on_back = self.show_login
-        view.on_signup = self.show_login
+        view.on_signup = lambda: self.handle_register(view)
         view.on_login = self.show_login
 
         self.current_view = view
@@ -88,3 +90,42 @@ class AppController:
 
         self.current_view = view
         view.pack(fill="both", expand=True)
+
+    def handle_login(self, view):
+        username = view.username_entry.get()
+        password = view.password_entry.get()
+
+        if not username or not password:
+            messagebox.showerror("Login error", "Username and password are required")
+            return
+
+        response = login_user(username, password)
+
+        if "error" in response:
+            messagebox.showerror("Login error", response["error"])
+            return
+
+        self.current_token = response["token"]
+        self.show_menu(response["name"])
+
+    def handle_register(self, view):
+        username = view.username_entry.get()
+        password = view.password_entry.get()
+        confirm_password = view.confirm_password_entry.get()
+
+        if not username or not password or not confirm_password:
+            messagebox.showerror("Register error", "All fields are required")
+            return
+
+        if password != confirm_password:
+            messagebox.showerror("Register error", "Passwords do not match")
+            return
+
+        response = register_user(username, password)
+
+        if "error" in response:
+            messagebox.showerror("Register error", response["error"])
+            return
+
+        messagebox.showinfo("Register", "User registered successfully")
+        self.show_login()
