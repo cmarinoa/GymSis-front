@@ -14,6 +14,7 @@ class MenuView(ctk.CTkFrame):
 
         # store session callback
         self._session_callback = None
+        self._add_session_callback = None
 
         # Callbacks assigned by controller
         # Allows the view to communicate user actions
@@ -131,11 +132,14 @@ class MenuView(ctk.CTkFrame):
     callback: function to call when a session is selected
     """
 
-    def show_sessions(self, callback=None):
+    def show_sessions(self, callback=None, add_callback=None, sessions=None):
         self._session_callback = callback  # store it for later use
+        self._add_session_callback = add_callback
         self.clear()
         view = SessionsView(self.dynamic_container, self.username)
         view.on_session_selected = self._session_callback
+        view.on_add_session = self._add_session_callback
+        view.display_sessions(sessions or [])
         view.pack(fill="both", expand=True)
 
     """

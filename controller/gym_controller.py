@@ -5,7 +5,7 @@ from view.register_view import RegisterView
 from view.menu_view import MenuView
 from view.sessions_view import SessionsView
 from view.exercises_view import ExercisesView
-from model.gym_model import login_user, register_user
+from model.gym_model import login_user, register_session, register_user
 
 class AppController:
     def __init__(self, root):
@@ -13,6 +13,7 @@ class AppController:
         self.current_view = None
         self.current_user = None
         self.current_token = None
+        self.sessions = []
 
         self.show_login()
 
@@ -22,6 +23,9 @@ class AppController:
 
     def show_login(self):
         self.clear_view()
+        self.current_user = None
+        self.current_token = None
+        self.sessions = []
         view = LoginView(self.root)
 
         view.signup_label.bind("<Button-1>", lambda e: self.show_register())
@@ -45,33 +49,58 @@ class AppController:
         self.clear_view()
         view = MenuView(self.root, username)
         self.current_user = username
+        self.sessions = []
 
         # navigation callbacks
         view.on_logout = self.show_login
-        view.on_open_sessions = lambda: view.show_sessions(self.handle_session_selected)
+        view.on_open_sessions = lambda: view.show_sessions(
+            self.handle_session_selected,
+            self.handle_add_session,
+            self.sessions
+        )
         view.on_open_profile = view.show_profile
 
         self.current_view = view
         view.pack(fill="both", expand=True)
 
         # Show sessions upon login
-        view.show_sessions(self.handle_session_selected)
+        view.show_sessions(
+            self.handle_session_selected,
+            self.handle_add_session,
+            self.sessions
+        )
 
     def show_sessions(self):
         self.clear_view()
         view = SessionsView(self.root, self.current_user)
         view.on_session_selected = self.handle_session_selected
-        view.on_add_session = lambda: print("Add session clicked")  # Replace with backend logic
-
-        # Example placeholder sessions
-        sessions = [
-            {"session_number": 1, "date": "2026-04-01"},
-            {"session_number": 2, "date": "2026-04-02"}
-        ]
-        view.display_sessions(sessions)
+        view.on_add_session = self.handle_add_session
+        view.display_sessions(self.sessions)
 
         self.current_view = view
         view.pack(fill="both", expand=True)
+
+    def handle_add_session(self, session_date):
+        if not self.current_token:
+            messagebox.showerror("Session error", "You must log in first")
+            return
+
+        response = register_session(session_date, self.current_token)
+
+        if "error" in response:
+            messagebox.showerror("Session error", response["error"])
+            return
+
+        self.sessions.append({
+            "session_number": response["session_number"],
+            "date": response["date"]
+        })
+
+        self.current_view.show_sessions(
+            self.handle_session_selected,
+            self.handle_add_session,
+            self.sessions
+        )
 
     def show_profile(self):
         self.current_view.show_profile()

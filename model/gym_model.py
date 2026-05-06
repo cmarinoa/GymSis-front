@@ -5,14 +5,18 @@ from urllib import request, error
 BASE_URL = "http://127.0.0.1:8000"
 
 
-def send_post(endpoint, data):
+def send_post(endpoint, data, token=None):
     url = BASE_URL + endpoint
     body = json.dumps(data).encode("utf-8")
+    headers = {"Content-Type": "application/json"}
+
+    if token:
+        headers["Cookie"] = "sessionid=" + token
 
     req = request.Request(
         url,
         data=body,
-        headers={"Content-Type": "application/json"},
+        headers=headers,
         method="POST"
     )
 
@@ -39,3 +43,10 @@ def login_user(name, password):
         "name": name,
         "password": password
     })
+
+
+# Register a new gym session in the backend
+def register_session(date, token):
+    return send_post("/sessions/register/", {
+        "date": date
+    }, token)
