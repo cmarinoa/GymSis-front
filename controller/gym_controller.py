@@ -5,7 +5,7 @@ from view.register_view import RegisterView
 from view.menu_view import MenuView
 from view.sessions_view import SessionsView
 from view.exercises_view import ExercisesView
-from model.gym_model import login_user, register_session, register_user
+from model.gym_model import login_user, register_exercise, register_session, register_user
 
 class AppController:
     def __init__(self, root):
@@ -14,6 +14,8 @@ class AppController:
         self.current_user = None
         self.current_token = None
         self.sessions = []
+        self.exercises_by_session = {}
+        self.current_exercises_view = None
 
         self.show_login()
 
@@ -26,6 +28,8 @@ class AppController:
         self.current_user = None
         self.current_token = None
         self.sessions = []
+        self.exercises_by_session = {}
+        self.current_exercises_view = None
         view = LoginView(self.root)
 
         view.signup_label.bind("<Button-1>", lambda e: self.show_register())
@@ -50,6 +54,8 @@ class AppController:
         view = MenuView(self.root, username)
         self.current_user = username
         self.sessions = []
+        self.exercises_by_session = {}
+        self.current_exercises_view = None
 
         # navigation callbacks
         view.on_logout = self.show_login
@@ -95,6 +101,7 @@ class AppController:
             "session_number": response["session_number"],
             "date": response["date"]
         })
+        self.exercises_by_session[response["session_number"]] = []
 
         self.current_view.show_sessions(
             self.handle_session_selected,
@@ -106,19 +113,30 @@ class AppController:
         self.current_view.show_profile()
 
     def handle_session_selected(self, session_data):
-        # Navigate to ExercisesView with the selected session
-        self.clear_view()
-        view = ExercisesView(self.root, self.current_user, session_data)
+        # Navigate to ExercisesView inside the menu content area
+        exercises = self.exercises_by_session.get(session_data["session_number"], [])
+        self.current_exercises_view = self.current_view.show_exercises(
+            session_data,
+            exercises,
+            lambda exercise: self.handle_add_exercise(session_data, exercise)
+        )
 
-        # To be implemented
-        exercises = []
-        view.display_exercises(exercises)
+    def handle_add_exercise(self, session_data, exercise):
+        if not self.current_token:
+            messagebox.showerror("Exercise error", "You must log in first")
+            return
 
-        # Back navigation
-        view.on_back = self.show_sessions
+        exercise["session_id"] = session_data["session_number"]
+        response = register_exercise(exercise, self.current_token)
 
-        self.current_view = view
-        view.pack(fill="both", expand=True)
+        if "error" in response:
+            messagebox.showerror("Exercise error", response["error"])
+            return
+
+        session_number = session_data["session_number"]
+        self.exercises_by_session.setdefault(session_number, [])
+        self.exercises_by_session[session_number].append(response)
+        self.current_exercises_view.display_exercises(self.exercises_by_session[session_number])
 
     def handle_login(self, view):
         username = view.username_entry.get()

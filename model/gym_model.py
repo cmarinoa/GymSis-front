@@ -50,3 +50,8 @@ def register_session(date, token):
     return send_post("/sessions/register/", {
         "date": date
     }, token)
+
+
+# Register a new exercise in the backend
+def register_exercise(exercise, token):
+    return send_post("/exercises/register/", exercise, token)

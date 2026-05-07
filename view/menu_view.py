@@ -15,6 +15,7 @@ class MenuView(ctk.CTkFrame):
         # store session callback
         self._session_callback = None
         self._add_session_callback = None
+        self._sessions = []
 
         # Callbacks assigned by controller
         # Allows the view to communicate user actions
@@ -135,11 +136,12 @@ class MenuView(ctk.CTkFrame):
     def show_sessions(self, callback=None, add_callback=None, sessions=None):
         self._session_callback = callback  # store it for later use
         self._add_session_callback = add_callback
+        self._sessions = sessions or []
         self.clear()
         view = SessionsView(self.dynamic_container, self.username)
         view.on_session_selected = self._session_callback
         view.on_add_session = self._add_session_callback
-        view.display_sessions(sessions or [])
+        view.display_sessions(self._sessions)
         view.pack(fill="both", expand=True)
 
     """
@@ -153,9 +155,16 @@ class MenuView(ctk.CTkFrame):
     """
     Displays ExercisesView for a selected session
     """
-    def show_exercises(self, session_data):
+    def show_exercises(self, session_data, exercises=None, add_exercise_callback=None):
         self.clear()
         view = ExercisesView(self.dynamic_container, self.username, session_data)
         # Set back button callback to reload sessions with stored callback
-        view.on_back = lambda: self.show_sessions(self._session_callback)
+        view.on_back = lambda: self.show_sessions(
+            self._session_callback,
+            self._add_session_callback,
+            self._sessions
+        )
+        view.on_add_exercise = add_exercise_callback
+        view.display_exercises(exercises or [])
         view.pack(fill="both", expand=True)
+        return view
