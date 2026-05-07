@@ -29,6 +29,28 @@ def send_post(endpoint, data, token=None):
         return {"error": "Could not connect to the server"}
 
 
+def send_get(endpoint, token=None):
+    url = BASE_URL + endpoint
+    headers = {}
+
+    if token:
+        headers["Cookie"] = "sessionid=" + token
+
+    req = request.Request(
+        url,
+        headers=headers,
+        method="GET"
+    )
+
+    try:
+        response = request.urlopen(req)
+        return json.loads(response.read().decode("utf-8"))
+    except error.HTTPError as e:
+        return json.loads(e.read().decode("utf-8"))
+    except error.URLError:
+        return {"error": "Could not connect to the server"}
+
+
 # Register a new user in the backend
 def register_user(name, password):
     return send_post("/register/", {
@@ -52,6 +74,16 @@ def register_session(date, token):
     }, token)
 
 
+# Get the logged in user's sessions
+def get_sessions(token):
+    return send_get("/sessions/", token)
+
+
 # Register a new exercise in the backend
 def register_exercise(exercise, token):
     return send_post("/exercises/register/", exercise, token)
+
+
+# Get the exercises from one session
+def get_exercises(session_id, token):
+    return send_get(f"/exercises/?session_id={session_id}", token)

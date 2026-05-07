@@ -5,7 +5,7 @@ from view.register_view import RegisterView
 from view.menu_view import MenuView
 from view.sessions_view import SessionsView
 from view.exercises_view import ExercisesView
-from model.gym_model import login_user, register_exercise, register_session, register_user
+from model.gym_model import get_exercises, get_sessions, login_user, register_exercise, register_session, register_user
 
 class AppController:
     def __init__(self, root):
@@ -53,8 +53,6 @@ class AppController:
         self.clear_view()
         view = MenuView(self.root, username)
         self.current_user = username
-        self.sessions = []
-        self.exercises_by_session = {}
         self.current_exercises_view = None
 
         # navigation callbacks
@@ -114,6 +112,7 @@ class AppController:
 
     def handle_session_selected(self, session_data):
         # Navigate to ExercisesView inside the menu content area
+        self.load_exercises(session_data["session_number"])
         exercises = self.exercises_by_session.get(session_data["session_number"], [])
         self.current_exercises_view = self.current_view.show_exercises(
             session_data,
@@ -153,7 +152,31 @@ class AppController:
             return
 
         self.current_token = response["token"]
+        self.sessions = []
+        self.exercises_by_session = {}
+        self.load_sessions()
         self.show_menu(response["name"])
+
+    def load_sessions(self):
+        response = get_sessions(self.current_token)
+
+        if "error" in response:
+            messagebox.showerror("Session error", response["error"])
+            return
+
+        self.sessions = response["sessions"]
+
+        for session in self.sessions:
+            self.exercises_by_session.setdefault(session["session_number"], [])
+
+    def load_exercises(self, session_number):
+        response = get_exercises(session_number, self.current_token)
+
+        if "error" in response:
+            messagebox.showerror("Exercise error", response["error"])
+            return
+
+        self.exercises_by_session[session_number] = response["exercises"]
 
     def handle_register(self, view):
         username = view.username_entry.get()
