@@ -147,9 +147,10 @@ class MenuView(ctk.CTkFrame):
     """
     Called when user clicks "MY PROFILE"
     """
-    def show_profile(self):
+    def show_profile(self, save_callback=None, measurements=None):
         self.clear()
-        view = ProfileView(self.dynamic_container, self.username)
+        view = ProfileView(self.dynamic_container, self.username, measurements)
+        view.on_save_measurements = save_callback
         view.pack(fill="both", expand=True)
 
     """

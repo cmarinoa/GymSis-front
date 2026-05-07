@@ -53,7 +53,7 @@ def send_get(endpoint, token=None):
 
 # Register a new user in the backend
 def register_user(name, password):
-    return send_post("/register/", {
+    return send_post("/users/", {
         "name": name,
         "password": password
     })
@@ -61,7 +61,7 @@ def register_user(name, password):
 
 # Log in an existing user in the backend
 def login_user(name, password):
-    return send_post("/login/", {
+    return send_post("/auth/login/", {
         "name": name,
         "password": password
     })
@@ -69,7 +69,7 @@ def login_user(name, password):
 
 # Register a new gym session in the backend
 def register_session(date, token):
-    return send_post("/sessions/register/", {
+    return send_post("/sessions/", {
         "date": date
     }, token)
 
@@ -81,9 +81,19 @@ def get_sessions(token):
 
 # Register a new exercise in the backend
 def register_exercise(exercise, token):
-    return send_post("/exercises/register/", exercise, token)
+    return send_post("/exercises/", exercise, token)
 
 
 # Get the exercises from one session
 def get_exercises(session_id, token):
     return send_get(f"/exercises/?session_id={session_id}", token)
+
+
+# Register the user's body measurements
+def register_measurements(measurements, token):
+    return send_post("/profile/measurements/", measurements, token)
+
+
+# Get the user's body measurements
+def get_measurements(token):
+    return send_get("/profile/measurements/", token)

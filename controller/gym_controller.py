@@ -5,7 +5,7 @@ from view.register_view import RegisterView
 from view.menu_view import MenuView
 from view.sessions_view import SessionsView
 from view.exercises_view import ExercisesView
-from model.gym_model import get_exercises, get_sessions, login_user, register_exercise, register_session, register_user
+from model.gym_model import get_exercises, get_measurements, get_sessions, login_user, register_exercise, register_measurements, register_session, register_user
 
 class AppController:
     def __init__(self, root):
@@ -16,6 +16,7 @@ class AppController:
         self.sessions = []
         self.exercises_by_session = {}
         self.current_exercises_view = None
+        self.measurements = {}
 
         self.show_login()
 
@@ -30,6 +31,7 @@ class AppController:
         self.sessions = []
         self.exercises_by_session = {}
         self.current_exercises_view = None
+        self.measurements = {}
         view = LoginView(self.root)
 
         view.signup_label.bind("<Button-1>", lambda e: self.show_register())
@@ -62,7 +64,10 @@ class AppController:
             self.handle_add_session,
             self.sessions
         )
-        view.on_open_profile = view.show_profile
+        view.on_open_profile = lambda: view.show_profile(
+            self.handle_save_measurements,
+            self.measurements
+        )
 
         self.current_view = view
         view.pack(fill="both", expand=True)
@@ -108,7 +113,32 @@ class AppController:
         )
 
     def show_profile(self):
-        self.current_view.show_profile()
+        self.current_view.show_profile(
+            self.handle_save_measurements,
+            self.measurements
+        )
+
+    def handle_save_measurements(self, measurements):
+        if not self.current_token:
+            messagebox.showerror("Profile error", "You must log in first")
+            return None
+
+        response = register_measurements(measurements, self.current_token)
+
+        if "error" in response:
+            messagebox.showerror("Profile error", response["error"])
+            return None
+
+        self.measurements = {
+            "height": response["height"],
+            "weight": response["weight"],
+            "chest": response["chest"],
+            "thighs": response["thighs"],
+            "waist": response["waist"],
+            "hips": response["hips"]
+        }
+
+        return self.measurements
 
     def handle_session_selected(self, session_data):
         # Navigate to ExercisesView inside the menu content area
@@ -155,6 +185,7 @@ class AppController:
         self.sessions = []
         self.exercises_by_session = {}
         self.load_sessions()
+        self.load_measurements()
         self.show_menu(response["name"])
 
     def load_sessions(self):
@@ -177,6 +208,22 @@ class AppController:
             return
 
         self.exercises_by_session[session_number] = response["exercises"]
+
+    def load_measurements(self):
+        response = get_measurements(self.current_token)
+
+        if "error" in response:
+            messagebox.showerror("Profile error", response["error"])
+            return
+
+        self.measurements = {
+            "height": response["height"],
+            "weight": response["weight"],
+            "chest": response["chest"],
+            "thighs": response["thighs"],
+            "waist": response["waist"],
+            "hips": response["hips"]
+        }
 
     def handle_register(self, view):
         username = view.username_entry.get()

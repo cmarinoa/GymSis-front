@@ -7,10 +7,12 @@ class ProfileView(ctk.CTkFrame):
     Displays user information (initially empty) and allows editing.
     """
 
-    def __init__(self, parent, username):
+    def __init__(self, parent, username, measurements=None):
         super().__init__(parent)
 
         self.username = username
+        self.measurements = measurements or {}
+        self.on_save_measurements = None
 
         # Track mode (view vs edit)
         self.edit_mode = False
@@ -72,8 +74,8 @@ class ProfileView(ctk.CTkFrame):
             label = ctk.CTkLabel(row, text=f"{label_text}:")
             label.pack(side="left")
 
-            # Username shows actual value, others empty
-            value = self.username if key == "username" else ""
+            # Username shows actual value, others show saved values
+            value = self.username if key == "username" else self.measurements.get(key, "")
 
             value_label = ctk.CTkLabel(row, text=value)
             value_label.pack(side="left", padx=10)
@@ -94,9 +96,10 @@ class ProfileView(ctk.CTkFrame):
 
             entry = ctk.CTkEntry(row)
 
-            # Username prefilled, others empty
             if key == "username":
                 entry.insert(0, self.username)
+            else:
+                entry.insert(0, self.measurements.get(key, ""))
 
             entry.pack(side="left", padx=10)
 
@@ -113,8 +116,27 @@ class ProfileView(ctk.CTkFrame):
             self.edit_button.configure(text="Save")
             self.show_edit_mode()
         else:
-            self.edit_button.configure(text="Edit")
-            self.show_view_mode()
+            if self.save_measurements():
+                self.edit_button.configure(text="Edit")
+                self.show_view_mode()
+
+    def save_measurements(self):
+        measurements = {}
+
+        for label_text, key in self.fields:
+            if key != "username":
+                measurements[key] = self.entries[key].get()
+
+        if self.on_save_measurements:
+            saved_measurements = self.on_save_measurements(measurements)
+
+            if not saved_measurements:
+                self.edit_mode = True
+                return False
+
+            self.measurements = saved_measurements
+
+        return True
 
     """Helper method that removes all field widgets"""
     def clear_fields(self):
