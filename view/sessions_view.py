@@ -8,6 +8,10 @@ class SessionsView(ctk.CTkFrame):
         self.username = username
         self.on_session_selected = None
         self.on_add_session = None  # Callback for adding a new session
+        self.on_edit_session = None
+        self.on_delete_session = None
+        # Stores the function that receives the selected date
+        self.calendar_callback = None
         self.current_year = date.today().year
         self.current_month = date.today().month
 
@@ -30,20 +34,41 @@ class SessionsView(ctk.CTkFrame):
 
         # Display each session as a button
         for session in sessions:
+            row = ctk.CTkFrame(self.scrollable_frame)
+            row.pack(fill="x", pady=5)
+
             btn = ctk.CTkButton(
-                self.scrollable_frame,
+                row,
                 text=f"Session #{session['session_number']} - {session['date']}",
                 command=lambda s=session: self.on_session_selected(s)  # callback
             )
-            btn.pack(fill="x", pady=5)
+            btn.pack(side="left", fill="x", expand=True, padx=(0, 5))
+
+            menu = ctk.CTkOptionMenu(
+                row,
+                values=["Edit", "Delete"],
+                width=40,
+                command=lambda action, s=session: self.handle_session_action(action, s)
+            )
+            menu.set("")
+            menu.pack(side="right")
 
     def add_session(self):
         if self.on_add_session:
-            self.open_calendar()
+            self.open_calendar(self.on_add_session)
         else:
             print("To be implemented")
 
-    def open_calendar(self):
+    def handle_session_action(self, action, session):
+        if action == "Edit" and self.on_edit_session:
+            # Reuse the same calendar window for editing a date
+            self.open_calendar(lambda selected_date: self.on_edit_session(session, selected_date))
+
+        if action == "Delete" and self.on_delete_session:
+            self.on_delete_session(session)
+
+    def open_calendar(self, callback):
+        self.calendar_callback = callback
         self.calendar_window = ctk.CTkToplevel(self)
         self.calendar_window.title("Select date")
         self.calendar_window.geometry("320x300")
@@ -117,4 +142,5 @@ class SessionsView(ctk.CTkFrame):
     def select_date(self, day):
         selected_date = date(self.current_year, self.current_month, day)
         self.calendar_window.destroy()
-        self.on_add_session(selected_date.isoformat())
+        # Return the chosen date to whoever opened the calendar
+        self.calendar_callback(selected_date.isoformat())

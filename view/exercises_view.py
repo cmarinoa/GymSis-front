@@ -1,4 +1,5 @@
 import customtkinter as ctk
+from view.exercise_detail_view import ExerciseDetailView
 
 
 class ExercisesView(ctk.CTkFrame):
@@ -8,7 +9,10 @@ class ExercisesView(ctk.CTkFrame):
         self.session_data = session_data
         self.on_back = None
         self.on_add_exercise = None
-        self.on_edit_exercise = None  # Callback for editing an exercise
+        self.on_update_exercise = None
+        self.on_delete_exercise = None
+        # Local copy used to redraw the list after opening details
+        self.exercises = []
 
         # Header with back button
         header_frame = ctk.CTkFrame(self)
@@ -33,6 +37,9 @@ class ExercisesView(ctk.CTkFrame):
         self.add_button.pack(pady=10)
 
     def display_exercises(self, exercises):
+        self.exercises = exercises
+        self.add_button.pack(pady=10)
+
         # Clear previous widgets
         for widget in self.scrollable_frame.winfo_children():
             widget.destroy()
@@ -61,6 +68,10 @@ class ExercisesView(ctk.CTkFrame):
         return f"{exercise['name']} - {exercise['weight']} kg - {exercise['reps']} reps"
 
     def open_exercise_form(self):
+        self.show_exercise_form()
+
+    def show_exercise_form(self):
+        # This form is only for creating a new exercise
         self.form_window = ctk.CTkToplevel(self)
         self.form_window.title("Add exercise")
         self.form_window.geometry("360x420")
@@ -195,7 +206,22 @@ class ExercisesView(ctk.CTkFrame):
             self.on_back()
 
     def edit_exercise(self, exercise):
-        if self.on_edit_exercise:
-            self.on_edit_exercise(exercise)
-        else:
-            print("To be implemented")
+        self.add_button.pack_forget()
+
+        for widget in self.scrollable_frame.winfo_children():
+            widget.destroy()
+
+        # Open the detail screen inside the same container
+        view = ExerciseDetailView(self.scrollable_frame, exercise)
+        view.on_back = lambda: self.display_exercises(self.exercises)
+        view.on_update_exercise = lambda updated_exercise: self.update_exercise(exercise, updated_exercise)
+        view.on_delete_exercise = self.delete_exercise
+        view.pack(fill="both", expand=True)
+
+    def update_exercise(self, old_exercise, updated_exercise):
+        if self.on_update_exercise:
+            self.on_update_exercise(old_exercise, updated_exercise)
+
+    def delete_exercise(self, exercise):
+        if self.on_delete_exercise:
+            self.on_delete_exercise(exercise)

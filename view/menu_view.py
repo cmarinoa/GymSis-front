@@ -15,6 +15,8 @@ class MenuView(ctk.CTkFrame):
         # store session callback
         self._session_callback = None
         self._add_session_callback = None
+        self._edit_session_callback = None
+        self._delete_session_callback = None
         self._sessions = []
 
         # Callbacks assigned by controller
@@ -133,14 +135,19 @@ class MenuView(ctk.CTkFrame):
     callback: function to call when a session is selected
     """
 
-    def show_sessions(self, callback=None, add_callback=None, sessions=None):
+    def show_sessions(self, callback=None, add_callback=None, sessions=None, edit_callback=None, delete_callback=None):
+        # Save callbacks so they can be reused when changing screens
         self._session_callback = callback  # store it for later use
         self._add_session_callback = add_callback
+        self._edit_session_callback = edit_callback
+        self._delete_session_callback = delete_callback
         self._sessions = sessions or []
         self.clear()
         view = SessionsView(self.dynamic_container, self.username)
         view.on_session_selected = self._session_callback
         view.on_add_session = self._add_session_callback
+        view.on_edit_session = self._edit_session_callback
+        view.on_delete_session = self._delete_session_callback
         view.display_sessions(self._sessions)
         view.pack(fill="both", expand=True)
 
@@ -150,22 +157,34 @@ class MenuView(ctk.CTkFrame):
     def show_profile(self, save_callback=None, measurements=None):
         self.clear()
         view = ProfileView(self.dynamic_container, self.username, measurements)
+        # The profile view only knows that it must call this function on save
         view.on_save_measurements = save_callback
         view.pack(fill="both", expand=True)
 
     """
     Displays ExercisesView for a selected session
     """
-    def show_exercises(self, session_data, exercises=None, add_exercise_callback=None):
+    def show_exercises(
+        self,
+        session_data,
+        exercises=None,
+        add_exercise_callback=None,
+        update_exercise_callback=None,
+        delete_exercise_callback=None
+    ):
         self.clear()
         view = ExercisesView(self.dynamic_container, self.username, session_data)
-        # Set back button callback to reload sessions with stored callback
+        # Rebuild the sessions screen using the saved callbacks and data
         view.on_back = lambda: self.show_sessions(
             self._session_callback,
             self._add_session_callback,
-            self._sessions
+            self._sessions,
+            self._edit_session_callback,
+            self._delete_session_callback
         )
         view.on_add_exercise = add_exercise_callback
+        view.on_update_exercise = update_exercise_callback
+        view.on_delete_exercise = delete_exercise_callback
         view.display_exercises(exercises or [])
         view.pack(fill="both", expand=True)
         return view
