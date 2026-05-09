@@ -48,8 +48,9 @@ class SessionsView(ctk.CTkFrame):
                 row,
                 values=["Edit", "Delete"],
                 width=40,
-                command=lambda action, s=session: self.handle_session_action(action, s)
+                command=None
             )
+            menu.configure(command=lambda action, s=session, m=menu: self.handle_session_action(action, s, m))
             menu.set("")
             menu.pack(side="right")
 
@@ -59,7 +60,10 @@ class SessionsView(ctk.CTkFrame):
         else:
             print("To be implemented")
 
-    def handle_session_action(self, action, session):
+    def handle_session_action(self, action, session, menu):
+        # Reset the visible text so the control keeps looking like an arrow-only menu
+        menu.set("")
+
         if action == "Edit" and self.on_edit_session:
             # Reuse the same calendar window for editing a date
             self.open_calendar(lambda selected_date: self.on_edit_session(session, selected_date))

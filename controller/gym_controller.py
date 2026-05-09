@@ -5,7 +5,7 @@ from view.register_view import RegisterView
 from view.menu_view import MenuView
 from view.sessions_view import SessionsView
 from view.exercises_view import ExercisesView
-from model.gym_model import get_exercises, get_measurements, get_sessions, login_user, register_exercise, register_measurements, register_session, register_user
+from model.gym_model import delete_exercise, delete_session, get_exercises, get_measurements, get_sessions, login_user, register_exercise, register_measurements, register_session, register_user, update_exercise, update_session
 
 class AppController:
     def __init__(self, root):
@@ -128,11 +128,19 @@ class AppController:
         )
 
     def handle_edit_session(self, session_data, new_date):
-        session_data["date"] = new_date
+        if not self.current_token:
+            messagebox.showerror("Session error", "You must log in first")
+            return
+
+        response = update_session(session_data["session_number"], new_date, self.current_token)
+
+        if "error" in response:
+            messagebox.showerror("Session error", response["error"])
+            return
 
         for session in self.sessions:
             if session["session_number"] == session_data["session_number"]:
-                session["date"] = new_date
+                session["date"] = response["date"]
 
         self.current_view.show_sessions(
             self.handle_session_selected,
@@ -152,6 +160,16 @@ class AppController:
             return
 
         session_number = session_data["session_number"]
+        if not self.current_token:
+            messagebox.showerror("Session error", "You must log in first")
+            return
+
+        response = delete_session(session_number, self.current_token)
+
+        if "error" in response:
+            messagebox.showerror("Session error", response["error"])
+            return
+
         self.sessions = [
             session for session in self.sessions
             if session["session_number"] != session_number
@@ -228,15 +246,21 @@ class AppController:
 
     def handle_edit_exercise(self, session_data, old_exercise, new_exercise):
         session_number = session_data["session_number"]
-        # Keep the same id so the edited exercise replaces the old one in the list
-        new_exercise["exercise_id"] = old_exercise.get("exercise_id")
+        if not self.current_token:
+            messagebox.showerror("Exercise error", "You must log in first")
+            return
+
+        response = update_exercise(old_exercise.get("exercise_id"), new_exercise, self.current_token)
+
+        if "error" in response:
+            messagebox.showerror("Exercise error", response["error"])
+            return
 
         exercises = self.exercises_by_session.get(session_number, [])
 
         for index, exercise in enumerate(exercises):
             if exercise.get("exercise_id") == old_exercise.get("exercise_id"):
-                # Front-only edit for now: replace the old exercise in local memory
-                exercises[index] = new_exercise
+                exercises[index] = response
 
     def handle_delete_exercise(self, session_data, exercise_data):
         confirm = messagebox.askyesno(
@@ -248,6 +272,16 @@ class AppController:
             return
 
         session_number = session_data["session_number"]
+        if not self.current_token:
+            messagebox.showerror("Exercise error", "You must log in first")
+            return
+
+        response = delete_exercise(exercise_data.get("exercise_id"), self.current_token)
+
+        if "error" in response:
+            messagebox.showerror("Exercise error", response["error"])
+            return
+
         self.exercises_by_session[session_number] = [
             exercise for exercise in self.exercises_by_session.get(session_number, [])
             if exercise.get("exercise_id") != exercise_data.get("exercise_id")
