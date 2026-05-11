@@ -5,7 +5,7 @@ from view.register_view import RegisterView
 from view.menu_view import MenuView
 from view.sessions_view import SessionsView
 from view.exercises_view import ExercisesView
-from model.gym_model import delete_exercise, delete_session, get_exercises, get_measurements, get_sessions, login_user, register_exercise, register_measurements, register_session, register_user, update_exercise, update_session
+from model.gym_model import clear_session_token, delete_exercise, delete_session, get_exercises, get_measurements, get_saved_session, get_sessions, load_session_token, login_user, register_exercise, register_measurements, register_session, register_user, save_session_token, update_exercise, update_session
 
 class AppController:
     def __init__(self, root):
@@ -22,7 +22,7 @@ class AppController:
         # Stores the latest profile measurements loaded from the backend
         self.measurements = {}
 
-        self.show_login()
+        self.restore_saved_session()
 
     def clear_view(self):
         if self.current_view:
@@ -45,6 +45,28 @@ class AppController:
         self.current_view = view
         view.pack(fill="both", expand=True)
 
+    def restore_saved_session(self):
+        # Try to keep the user logged in with the token saved on disk
+        saved_token = load_session_token()
+
+        if not saved_token:
+            self.show_login()
+            return
+
+        response = get_saved_session(saved_token)
+
+        if "error" in response:
+            clear_session_token()
+            self.show_login()
+            return
+
+        self.current_token = saved_token
+        self.sessions = []
+        self.exercises_by_session = {}
+        self.load_sessions()
+        self.load_measurements()
+        self.show_menu(response["name"])
+
     def show_register(self):
         self.clear_view()
         view = RegisterView(self.root)
@@ -63,7 +85,7 @@ class AppController:
         self.current_exercises_view = None
 
         # Connect each menu action with the matching controller method
-        view.on_logout = self.show_login
+        view.on_logout = self.handle_logout
         view.on_open_sessions = lambda: view.show_sessions(
             self.handle_session_selected,
             self.handle_add_session,
@@ -244,6 +266,11 @@ class AppController:
         self.exercises_by_session[session_number].append(response)
         self.current_exercises_view.display_exercises(self.exercises_by_session[session_number])
 
+    def handle_logout(self):
+        # Logging out removes the saved token so the next app start shows login
+        clear_session_token()
+        self.show_login()
+
     def handle_edit_exercise(self, session_data, old_exercise, new_exercise):
         session_number = session_data["session_number"]
         if not self.current_token:
@@ -304,6 +331,7 @@ class AppController:
             return
 
         self.current_token = response["token"]
+        save_session_token(self.current_token)
         # Load the user's saved data before opening the main menu
         self.sessions = []
         self.exercises_by_session = {}
