@@ -9,8 +9,8 @@ class App(ctk.CTk):
         self.title("GymSis")
         self.geometry("500x600")
 
-        ctk.set_appearance_mode("light")
-        ctk.set_default_color_theme("blue")
+        ctk.set_appearance_mode("dark")
+        ctk.set_default_color_theme("green")
 
         # Start controller
         self.controller = AppController(self)

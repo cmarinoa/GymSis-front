@@ -104,7 +104,7 @@ class ExerciseDetailView(ctk.CTkFrame):
             fields = [
                 ("Type", "exercise_type", "Cardio"),
                 ("Name", "name", self.exercise["name"]),
-                ("Time", "time", self.exercise["time"])
+                ("Time (min)", "time", self.exercise["time"])
             ]
 
             if self.exercise["name"] != "Swimming":
@@ -118,21 +118,21 @@ class ExerciseDetailView(ctk.CTkFrame):
         return [
             ("Type", "exercise_type", "Weights"),
             ("Name", "name", self.exercise["name"]),
-            ("Weight", "weight", self.exercise["weight"]),
+            ("Weight (kg)", "weight", self.exercise["weight"]),
             ("Reps", "reps", self.exercise["reps"])
         ]
 
     def toggle_edit_mode(self):
         # Switch between normal display and editable display
-        self.edit_mode = not self.edit_mode
-
-        if self.edit_mode:
+        if not self.edit_mode:
+            self.edit_mode = True
             self.edit_button.configure(text="Save")
             self.show_edit_mode()
         else:
-            self.save_changes()
-            self.edit_button.configure(text="Edit")
-            self.show_view_mode()
+            if self.save_changes():
+                self.edit_mode = False
+                self.edit_button.configure(text="Edit")
+                self.show_view_mode()
 
     def save_changes(self):
         updated_exercise = self.exercise.copy()
@@ -141,12 +141,17 @@ class ExerciseDetailView(ctk.CTkFrame):
             # Read all the new values entered by the user
             updated_exercise[key] = entry.get()
 
-        # Update the local view first, then notify the parent view
-        self.exercise = updated_exercise
-        self.title.configure(text=self.exercise["name"])
-
         if self.on_update_exercise:
-            self.on_update_exercise(updated_exercise)
+            saved_exercise = self.on_update_exercise(updated_exercise)
+
+            if not saved_exercise:
+                return False
+
+            # Only update the local screen after the controller accepts the data
+            self.exercise = saved_exercise
+            self.title.configure(text=self.exercise["name"])
+
+        return True
 
     def delete_exercise(self):
         if self.on_delete_exercise:

@@ -5,6 +5,7 @@ from view.register_view import RegisterView
 from view.menu_view import MenuView
 from view.sessions_view import SessionsView
 from view.exercises_view import ExercisesView
+from controller.validation_helpers import validate_cardio_exercise, validate_measurements, validate_password, validate_username, validate_weight_exercise
 from model.gym_model import clear_session_token, delete_exercise, delete_session, get_exercises, get_measurements, get_saved_session, get_sessions, load_session_token, login_user, register_exercise, register_measurements, register_session, register_user, save_session_token, update_exercise, update_session
 
 class AppController:
@@ -134,12 +135,8 @@ class AppController:
             messagebox.showerror("Session error", response["error"])
             return
 
-        self.sessions.append({
-            "session_number": response["session_number"],
-            "date": response["date"]
-        })
-        # Prepare an empty local exercise list for the new session
-        self.exercises_by_session[response["session_number"]] = []
+        # Reload sessions so the visible numbering stays correct for this user
+        self.load_sessions()
 
         self.current_view.show_sessions(
             self.handle_session_selected,
@@ -154,15 +151,14 @@ class AppController:
             messagebox.showerror("Session error", "You must log in first")
             return
 
-        response = update_session(session_data["session_number"], new_date, self.current_token)
+        response = update_session(session_data["session_id"], new_date, self.current_token)
 
         if "error" in response:
             messagebox.showerror("Session error", response["error"])
             return
 
-        for session in self.sessions:
-            if session["session_number"] == session_data["session_number"]:
-                session["date"] = response["date"]
+        # Reload sessions because changing the date may change the visible order
+        self.load_sessions()
 
         self.current_view.show_sessions(
             self.handle_session_selected,
@@ -181,22 +177,20 @@ class AppController:
         if not confirm:
             return
 
-        session_number = session_data["session_number"]
+        session_id = session_data["session_id"]
         if not self.current_token:
             messagebox.showerror("Session error", "You must log in first")
             return
 
-        response = delete_session(session_number, self.current_token)
+        response = delete_session(session_id, self.current_token)
 
         if "error" in response:
             messagebox.showerror("Session error", response["error"])
             return
 
-        self.sessions = [
-            session for session in self.sessions
-            if session["session_number"] != session_number
-        ]
-        self.exercises_by_session.pop(session_number, None)
+        self.exercises_by_session.pop(session_id, None)
+        # Reload sessions because deleting one changes the visible numbering
+        self.load_sessions()
 
         self.current_view.show_sessions(
             self.handle_session_selected,
@@ -215,6 +209,12 @@ class AppController:
     def handle_save_measurements(self, measurements):
         if not self.current_token:
             messagebox.showerror("Profile error", "You must log in first")
+            return None
+
+        validation_error = validate_measurements(measurements)
+
+        if validation_error:
+            messagebox.showerror("Profile error", validation_error)
             return None
 
         # Send the edited profile values to the backend
@@ -237,8 +237,8 @@ class AppController:
 
     def handle_session_selected(self, session_data):
         # Load the latest exercises before opening the exercises screen
-        self.load_exercises(session_data["session_number"])
-        exercises = self.exercises_by_session.get(session_data["session_number"], [])
+        self.load_exercises(session_data["session_id"])
+        exercises = self.exercises_by_session.get(session_data["session_id"], [])
         self.current_exercises_view = self.current_view.show_exercises(
             session_data,
             exercises,
@@ -250,21 +250,28 @@ class AppController:
     def handle_add_exercise(self, session_data, exercise):
         if not self.current_token:
             messagebox.showerror("Exercise error", "You must log in first")
-            return
+            return False
+
+        validation_error = self.validate_exercise(exercise)
+
+        if validation_error:
+            messagebox.showerror("Exercise error", validation_error)
+            return False
 
         # Add the session id so the backend knows where this exercise belongs
-        exercise["session_id"] = session_data["session_number"]
+        exercise["session_id"] = session_data["session_id"]
         response = register_exercise(exercise, self.current_token)
 
         if "error" in response:
             messagebox.showerror("Exercise error", response["error"])
-            return
+            return False
 
-        session_number = session_data["session_number"]
-        self.exercises_by_session.setdefault(session_number, [])
+        session_id = session_data["session_id"]
+        self.exercises_by_session.setdefault(session_id, [])
         # Keep the created exercise in local memory too
-        self.exercises_by_session[session_number].append(response)
-        self.current_exercises_view.display_exercises(self.exercises_by_session[session_number])
+        self.exercises_by_session[session_id].append(response)
+        self.current_exercises_view.display_exercises(self.exercises_by_session[session_id])
+        return True
 
     def handle_logout(self):
         # Logging out removes the saved token so the next app start shows login
@@ -272,22 +279,30 @@ class AppController:
         self.show_login()
 
     def handle_edit_exercise(self, session_data, old_exercise, new_exercise):
-        session_number = session_data["session_number"]
+        session_id = session_data["session_id"]
         if not self.current_token:
             messagebox.showerror("Exercise error", "You must log in first")
-            return
+            return None
+
+        validation_error = self.validate_exercise(new_exercise)
+
+        if validation_error:
+            messagebox.showerror("Exercise error", validation_error)
+            return None
 
         response = update_exercise(old_exercise.get("exercise_id"), new_exercise, self.current_token)
 
         if "error" in response:
             messagebox.showerror("Exercise error", response["error"])
-            return
+            return None
 
-        exercises = self.exercises_by_session.get(session_number, [])
+        exercises = self.exercises_by_session.get(session_id, [])
 
         for index, exercise in enumerate(exercises):
             if exercise.get("exercise_id") == old_exercise.get("exercise_id"):
                 exercises[index] = response
+
+        return response
 
     def handle_delete_exercise(self, session_data, exercise_data):
         confirm = messagebox.askyesno(
@@ -298,7 +313,7 @@ class AppController:
         if not confirm:
             return
 
-        session_number = session_data["session_number"]
+        session_id = session_data["session_id"]
         if not self.current_token:
             messagebox.showerror("Exercise error", "You must log in first")
             return
@@ -309,12 +324,12 @@ class AppController:
             messagebox.showerror("Exercise error", response["error"])
             return
 
-        self.exercises_by_session[session_number] = [
-            exercise for exercise in self.exercises_by_session.get(session_number, [])
+        self.exercises_by_session[session_id] = [
+            exercise for exercise in self.exercises_by_session.get(session_id, [])
             if exercise.get("exercise_id") != exercise_data.get("exercise_id")
         ]
 
-        self.current_exercises_view.display_exercises(self.exercises_by_session[session_number])
+        self.current_exercises_view.display_exercises(self.exercises_by_session[session_id])
 
     def handle_login(self, view):
         username = view.username_entry.get()
@@ -351,17 +366,17 @@ class AppController:
 
         for session in self.sessions:
             # Create the local slot where that session's exercises will be stored
-            self.exercises_by_session.setdefault(session["session_number"], [])
+            self.exercises_by_session.setdefault(session["session_id"], [])
 
-    def load_exercises(self, session_number):
+    def load_exercises(self, session_id):
         # Requests all exercises from one selected session
-        response = get_exercises(session_number, self.current_token)
+        response = get_exercises(session_id, self.current_token)
 
         if "error" in response:
             messagebox.showerror("Exercise error", response["error"])
             return
 
-        self.exercises_by_session[session_number] = response["exercises"]
+        self.exercises_by_session[session_id] = response["exercises"]
 
     def load_measurements(self):
         # Requests the latest saved body measurements for the current user
@@ -393,6 +408,18 @@ class AppController:
             messagebox.showerror("Register error", "Passwords do not match")
             return
 
+        username_error = validate_username(username)
+
+        if username_error:
+            messagebox.showerror("Register error", username_error)
+            return
+
+        password_error = validate_password(password)
+
+        if password_error:
+            messagebox.showerror("Register error", password_error)
+            return
+
         response = register_user(username, password)
 
         if "error" in response:
@@ -401,3 +428,10 @@ class AppController:
 
         messagebox.showinfo("Register", "User registered successfully")
         self.show_login()
+
+    def validate_exercise(self, exercise):
+        # Validate the correct fields depending on the exercise type
+        if exercise.get("exercise_type") == "cardio":
+            return validate_cardio_exercise(exercise)
+
+        return validate_weight_exercise(exercise)

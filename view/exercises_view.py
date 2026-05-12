@@ -130,7 +130,7 @@ class ExercisesView(ctk.CTkFrame):
         else:
             self.level_entry = self.create_entry("Level")
 
-        self.time_entry = self.create_entry("Time")
+        self.time_entry = self.create_entry("Time (min)")
 
         self.incline_frame = ctk.CTkFrame(self.fields_frame)
         self.incline_frame.pack(fill="x")
@@ -154,7 +154,7 @@ class ExercisesView(ctk.CTkFrame):
 
     def draw_weight_fields(self):
         self.name_entry = self.create_entry("Exercise name")
-        self.weight_entry = self.create_entry("Weight")
+        self.weight_entry = self.create_entry("Weight (kg)")
         self.reps_entry = self.create_entry("Reps")
 
         save_button = ctk.CTkButton(self.fields_frame, text="Save", command=self.save_weight_exercise)
@@ -198,8 +198,8 @@ class ExercisesView(ctk.CTkFrame):
 
     def save_exercise(self, exercise):
         if self.on_add_exercise:
-            self.form_window.destroy()
-            self.on_add_exercise(exercise)
+            if self.on_add_exercise(exercise):
+                self.form_window.destroy()
 
     def go_back(self):
         if self.on_back:

@@ -42,12 +42,12 @@ class ProfileView(ctk.CTkFrame):
         # Fields definition (label text + key)
         self.fields = [
             ("Username", "username"),
-            ("Height", "height"),
-            ("Weight", "weight"),
-            ("Chest", "chest"),
-            ("Thighs", "thighs"),
-            ("Waist", "waist"),
-            ("Hips", "hips")
+            ("Height (m)", "height"),
+            ("Weight (kg)", "weight"),
+            ("Chest (cm)", "chest"),
+            ("Thighs (cm)", "thighs"),
+            ("Waist (cm)", "waist"),
+            ("Hips (cm)", "hips")
         ]
 
         # Frame for fields
