@@ -183,12 +183,13 @@ class MenuView(ctk.CTkFrame):
         self,
         session_data,
         exercises=None,
+        saved_exercises=None,
         add_exercise_callback=None,
         update_exercise_callback=None,
         delete_exercise_callback=None
     ):
         self.clear()
-        view = ExercisesView(self.dynamic_container, self.username, session_data)
+        view = ExercisesView(self.dynamic_container, self.username, session_data, saved_exercises or [])
         # Rebuild the sessions screen using the saved callbacks and data
         view.on_back = lambda: self.show_sessions(
             self._session_callback,

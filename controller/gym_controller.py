@@ -261,6 +261,7 @@ class AppController:
         self.current_exercises_view = self.current_view.show_exercises(
             session_data,
             exercises,
+            self.saved_exercises,
             lambda exercise: self.handle_add_exercise(session_data, exercise),
             lambda old_exercise, new_exercise: self.handle_edit_exercise(session_data, old_exercise, new_exercise),
             lambda exercise: self.handle_delete_exercise(session_data, exercise)

@@ -7,11 +7,12 @@ class ExerciseDetailView(ctk.CTkFrame):
     It can display the exercise or turn the fields into inputs for editing.
     """
 
-    def __init__(self, parent, exercise):
+    def __init__(self, parent, exercise, saved_exercises=None):
         super().__init__(parent)
 
         # Stores the exercise currently being displayed
         self.exercise = exercise
+        self.saved_exercises = saved_exercises or []
         # Controls whether the screen is in normal mode or edit mode
         self.edit_mode = False
         # Stores the entry widgets created while editing
@@ -92,11 +93,45 @@ class ExerciseDetailView(ctk.CTkFrame):
             label = ctk.CTkLabel(row, text=f"{label_text}:")
             label.pack(side="left", padx=10)
 
+            if self.exercise["exercise_type"] == "weights" and key == "name":
+                self.draw_weight_name_menu(row, value)
+                continue
+
             entry = ctk.CTkEntry(row)
             entry.insert(0, str(value))
             entry.pack(side="left", padx=10)
 
             self.entries[key] = entry
+
+    def draw_weight_name_menu(self, row, current_value):
+        weight_options = []
+
+        for exercise in self.saved_exercises:
+            weight_options.append(exercise["name"])
+
+        self.selected_weight_exercise = ctk.StringVar()
+
+        if weight_options:
+            if current_value in weight_options:
+                self.selected_weight_exercise.set(current_value)
+            else:
+                self.selected_weight_exercise.set(weight_options[0])
+
+            self.weight_name_menu = ctk.CTkOptionMenu(
+                row,
+                values=weight_options,
+                variable=self.selected_weight_exercise
+            )
+            self.weight_name_menu.pack(side="left", padx=10)
+        else:
+            self.selected_weight_exercise.set("")
+            self.weight_name_menu = ctk.CTkOptionMenu(
+                row,
+                values=["No saved exercises"],
+                variable=self.selected_weight_exercise
+            )
+            self.weight_name_menu.pack(side="left", padx=10)
+            self.weight_name_menu.configure(state="disabled")
 
     def get_fields(self):
         # Returns the fields that should appear depending on the exercise type
@@ -140,6 +175,9 @@ class ExerciseDetailView(ctk.CTkFrame):
         for key, entry in self.entries.items():
             # Read all the new values entered by the user
             updated_exercise[key] = entry.get()
+
+        if self.exercise["exercise_type"] == "weights":
+            updated_exercise["name"] = self.selected_weight_exercise.get()
 
         if self.on_update_exercise:
             saved_exercise = self.on_update_exercise(updated_exercise)

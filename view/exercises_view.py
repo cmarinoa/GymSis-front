@@ -3,10 +3,11 @@ from view.exercise_detail_view import ExerciseDetailView
 
 
 class ExercisesView(ctk.CTkFrame):
-    def __init__(self, parent, username, session_data):
+    def __init__(self, parent, username, session_data, saved_exercises=None):
         super().__init__(parent)
         self.username = username
         self.session_data = session_data
+        self.saved_exercises = saved_exercises or []
         self.on_back = None
         self.on_add_exercise = None
         self.on_update_exercise = None
@@ -153,7 +154,34 @@ class ExercisesView(ctk.CTkFrame):
             self.incline_entry = None
 
     def draw_weight_fields(self):
-        self.name_entry = self.create_entry("Exercise name")
+        weight_options = []
+
+        for exercise in self.saved_exercises:
+            weight_options.append(exercise["name"])
+
+        self.selected_weight_exercise = ctk.StringVar()
+
+        label = ctk.CTkLabel(self.fields_frame, text="Exercise name")
+        label.pack(anchor="w")
+
+        if weight_options:
+            self.selected_weight_exercise.set(weight_options[0])
+            self.weight_name_menu = ctk.CTkOptionMenu(
+                self.fields_frame,
+                values=weight_options,
+                variable=self.selected_weight_exercise
+            )
+            self.weight_name_menu.pack(fill="x", pady=(5, 10))
+        else:
+            self.selected_weight_exercise.set("")
+            self.weight_name_menu = ctk.CTkOptionMenu(
+                self.fields_frame,
+                values=["No saved exercises"],
+                variable=self.selected_weight_exercise
+            )
+            self.weight_name_menu.pack(fill="x", pady=(5, 10))
+            self.weight_name_menu.configure(state="disabled")
+
         self.weight_entry = self.create_entry("Weight (kg)")
         self.reps_entry = self.create_entry("Reps")
 
@@ -189,7 +217,7 @@ class ExercisesView(ctk.CTkFrame):
     def save_weight_exercise(self):
         exercise = {
             "exercise_type": "weights",
-            "name": self.name_entry.get(),
+            "name": self.selected_weight_exercise.get(),
             "weight": self.weight_entry.get(),
             "reps": self.reps_entry.get()
         }
@@ -212,7 +240,7 @@ class ExercisesView(ctk.CTkFrame):
             widget.destroy()
 
         # Open the detail screen inside the same container
-        view = ExerciseDetailView(self.scrollable_frame, exercise)
+        view = ExerciseDetailView(self.scrollable_frame, exercise, self.saved_exercises)
         view.on_back = lambda: self.display_exercises(self.exercises)
         view.on_update_exercise = lambda updated_exercise: self.update_exercise(exercise, updated_exercise)
         view.on_delete_exercise = self.delete_exercise
