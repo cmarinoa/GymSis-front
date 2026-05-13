@@ -120,6 +120,18 @@ def get_measurements(token):
     return send_get("/profile/", token)
 
 
+# Register a new saved exercise
+def register_saved_exercise(name, token):
+    return send_post("/user-exercises/", {
+        "name": name
+    }, token)
+
+
+# Get the user's saved exercises
+def get_saved_exercises(token):
+    return send_get("/user-exercises/", token)
+
+
 # Update one session in the backend
 def update_session(session_id, date, token):
     return send_put(f"/sessions/{session_id}/", {
@@ -130,6 +142,18 @@ def update_session(session_id, date, token):
 # Delete one session in the backend
 def delete_session(session_id, token):
     return send_delete(f"/sessions/{session_id}/", token)
+
+
+# Update one saved exercise in the backend
+def update_saved_exercise(exercise_id, name, token):
+    return send_put(f"/user-exercises/{exercise_id}/", {
+        "name": name
+    }, token)
+
+
+# Delete one saved exercise in the backend
+def delete_saved_exercise(exercise_id, token):
+    return send_delete(f"/user-exercises/{exercise_id}/", token)
 
 
 # Update one exercise in the backend

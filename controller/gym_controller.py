@@ -6,7 +6,7 @@ from view.menu_view import MenuView
 from view.sessions_view import SessionsView
 from view.exercises_view import ExercisesView
 from controller.validation_helpers import validate_cardio_exercise, validate_measurements, validate_password, validate_username, validate_weight_exercise
-from model.gym_model import clear_session_token, delete_exercise, delete_session, get_exercises, get_measurements, get_saved_session, get_sessions, load_session_token, login_user, register_exercise, register_measurements, register_session, register_user, save_session_token, update_exercise, update_session
+from model.gym_model import clear_session_token, delete_exercise, delete_saved_exercise, delete_session, get_exercises, get_measurements, get_saved_exercises, get_saved_session, get_sessions, load_session_token, login_user, register_exercise, register_measurements, register_saved_exercise, register_session, register_user, save_session_token, update_exercise, update_saved_exercise, update_session
 
 class AppController:
     def __init__(self, root):
@@ -22,6 +22,8 @@ class AppController:
         self.current_exercises_view = None
         # Stores the latest profile measurements loaded from the backend
         self.measurements = {}
+        # Stores the user's saved exercises
+        self.saved_exercises = []
 
         self.restore_saved_session()
 
@@ -38,6 +40,7 @@ class AppController:
         self.exercises_by_session = {}
         self.current_exercises_view = None
         self.measurements = {}
+        self.saved_exercises = []
         view = LoginView(self.root)
 
         view.signup_label.bind("<Button-1>", lambda e: self.show_register())
@@ -64,8 +67,10 @@ class AppController:
         self.current_token = saved_token
         self.sessions = []
         self.exercises_by_session = {}
+        self.saved_exercises = []
         self.load_sessions()
         self.load_measurements()
+        self.load_saved_exercises()
         self.show_menu(response["name"])
 
     def show_register(self):
@@ -97,6 +102,12 @@ class AppController:
         view.on_open_profile = lambda: view.show_profile(
             self.handle_save_measurements,
             self.measurements
+        )
+        view.on_open_saved_exercises = lambda: view.show_saved_exercises(
+            self.saved_exercises,
+            self.handle_add_saved_exercise,
+            self.handle_edit_saved_exercise,
+            self.handle_delete_saved_exercise
         )
 
         self.current_view = view
@@ -206,6 +217,14 @@ class AppController:
             self.measurements
         )
 
+    def show_saved_exercises(self):
+        self.current_view.show_saved_exercises(
+            self.saved_exercises,
+            self.handle_add_saved_exercise,
+            self.handle_edit_saved_exercise,
+            self.handle_delete_saved_exercise
+        )
+
     def handle_save_measurements(self, measurements):
         if not self.current_token:
             messagebox.showerror("Profile error", "You must log in first")
@@ -277,6 +296,73 @@ class AppController:
         # Logging out removes the saved token so the next app start shows login
         clear_session_token()
         self.show_login()
+
+    def handle_add_saved_exercise(self, exercise_name):
+        if not self.current_token:
+            messagebox.showerror("Exercise error", "You must log in first")
+            return False
+
+        response = register_saved_exercise(exercise_name, self.current_token)
+
+        if "error" in response:
+            messagebox.showerror("Exercise error", response["error"])
+            return False
+
+        self.saved_exercises.append({
+            "exercise_id": response["exercise_id"],
+            "name": response["name"]
+        })
+        self.saved_exercises.sort(key=lambda exercise: (exercise["name"].lower(), exercise["exercise_id"]))
+
+        self.show_saved_exercises()
+        return True
+
+    def handle_edit_saved_exercise(self, exercise_data, new_name):
+        if not self.current_token:
+            messagebox.showerror("Exercise error", "You must log in first")
+            return False
+
+        response = update_saved_exercise(exercise_data["exercise_id"], new_name, self.current_token)
+
+        if "error" in response:
+            messagebox.showerror("Exercise error", response["error"])
+            return False
+
+        for saved_exercise in self.saved_exercises:
+            if saved_exercise["exercise_id"] == exercise_data["exercise_id"]:
+                saved_exercise["name"] = response["name"]
+                break
+
+        self.saved_exercises.sort(key=lambda exercise: (exercise["name"].lower(), exercise["exercise_id"]))
+
+        self.show_saved_exercises()
+        return True
+
+    def handle_delete_saved_exercise(self, exercise_data):
+        confirm = messagebox.askyesno(
+            "Delete exercise",
+            "Are you sure you want to delete this exercise?"
+        )
+
+        if not confirm:
+            return
+
+        if not self.current_token:
+            messagebox.showerror("Exercise error", "You must log in first")
+            return
+
+        response = delete_saved_exercise(exercise_data["exercise_id"], self.current_token)
+
+        if "error" in response:
+            messagebox.showerror("Exercise error", response["error"])
+            return
+
+        self.saved_exercises = [
+            exercise for exercise in self.saved_exercises
+            if exercise["exercise_id"] != exercise_data["exercise_id"]
+        ]
+
+        self.show_saved_exercises()
 
     def handle_edit_exercise(self, session_data, old_exercise, new_exercise):
         session_id = session_data["session_id"]
@@ -350,8 +436,10 @@ class AppController:
         # Load the user's saved data before opening the main menu
         self.sessions = []
         self.exercises_by_session = {}
+        self.saved_exercises = []
         self.load_sessions()
         self.load_measurements()
+        self.load_saved_exercises()
         self.show_menu(response["name"])
 
     def load_sessions(self):
@@ -394,6 +482,16 @@ class AppController:
             "waist": response["waist"],
             "hips": response["hips"]
         }
+
+    def load_saved_exercises(self):
+        # Requests the saved exercises that belong to the logged in user
+        response = get_saved_exercises(self.current_token)
+
+        if "error" in response:
+            messagebox.showerror("Exercise error", response["error"])
+            return
+
+        self.saved_exercises = response["exercises"]
 
     def handle_register(self, view):
         username = view.username_entry.get()

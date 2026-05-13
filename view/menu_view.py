@@ -2,6 +2,7 @@ import customtkinter as ctk
 from view.sessions_view import SessionsView
 from view.profile_view import ProfileView
 from view.exercises_view import ExercisesView
+from view.saved_exercises_view import SavedExercisesView
 
 class MenuView(ctk.CTkFrame):
     """
@@ -25,6 +26,7 @@ class MenuView(ctk.CTkFrame):
         self.on_logout = None
         self.on_open_sessions = None
         self.on_open_profile = None
+        self.on_open_saved_exercises = None
 
         # State of the side menu (default closed)
         self.menu_open = False
@@ -84,6 +86,7 @@ class MenuView(ctk.CTkFrame):
 
         items = [
             ("My GYM", lambda: self.on_open_sessions()),
+            ("MY EXERCISES", lambda: self.on_open_saved_exercises()),
             ("MY PROFILE", lambda: self.on_open_profile()),
             ("LOG OUT", lambda: self.on_logout())
         ]
@@ -159,6 +162,18 @@ class MenuView(ctk.CTkFrame):
         view = ProfileView(self.dynamic_container, self.username, measurements)
         # The profile view only knows that it must call this function on save
         view.on_save_measurements = save_callback
+        view.pack(fill="both", expand=True)
+
+    """
+    Called when user clicks "MY EXERCISES"
+    """
+    def show_saved_exercises(self, saved_exercises=None, add_callback=None, edit_callback=None, delete_callback=None):
+        self.clear()
+        view = SavedExercisesView(self.dynamic_container, self.username)
+        view.on_add_exercise = add_callback
+        view.on_edit_exercise = edit_callback
+        view.on_delete_exercise = delete_callback
+        view.display_exercises(saved_exercises or [])
         view.pack(fill="both", expand=True)
 
     """
