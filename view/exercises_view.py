@@ -215,8 +215,16 @@ class ExercisesView(ctk.CTkFrame):
         self.save_exercise(exercise)
 
     def save_weight_exercise(self):
+        user_exercise_id = None
+
+        for saved_exercise in self.saved_exercises:
+            if saved_exercise["name"] == self.selected_weight_exercise.get():
+                user_exercise_id = saved_exercise["exercise_id"]
+                break
+
         exercise = {
             "exercise_type": "weights",
+            "user_exercise_id": user_exercise_id,
             "name": self.selected_weight_exercise.get(),
             "weight": self.weight_entry.get(),
             "reps": self.reps_entry.get()
@@ -248,7 +256,9 @@ class ExercisesView(ctk.CTkFrame):
 
     def update_exercise(self, old_exercise, updated_exercise):
         if self.on_update_exercise:
-            self.on_update_exercise(old_exercise, updated_exercise)
+            return self.on_update_exercise(old_exercise, updated_exercise)
+
+        return None
 
     def delete_exercise(self, exercise):
         if self.on_delete_exercise:

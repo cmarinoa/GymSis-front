@@ -105,6 +105,7 @@ class ExerciseDetailView(ctk.CTkFrame):
 
     def draw_weight_name_menu(self, row, current_value):
         weight_options = []
+        current_exercise_name = current_value
 
         for exercise in self.saved_exercises:
             weight_options.append(exercise["name"])
@@ -112,10 +113,15 @@ class ExerciseDetailView(ctk.CTkFrame):
         self.selected_weight_exercise = ctk.StringVar()
 
         if weight_options:
-            if current_value in weight_options:
-                self.selected_weight_exercise.set(current_value)
+            self.selected_weight_exercise.set(weight_options[0])
+
+            for exercise in self.saved_exercises:
+                if exercise["exercise_id"] == self.exercise.get("user_exercise_id"):
+                    self.selected_weight_exercise.set(exercise["name"])
+                    break
             else:
-                self.selected_weight_exercise.set(weight_options[0])
+                if current_exercise_name in weight_options:
+                    self.selected_weight_exercise.set(current_exercise_name)
 
             self.weight_name_menu = ctk.CTkOptionMenu(
                 row,
@@ -178,6 +184,11 @@ class ExerciseDetailView(ctk.CTkFrame):
 
         if self.exercise["exercise_type"] == "weights":
             updated_exercise["name"] = self.selected_weight_exercise.get()
+
+            for saved_exercise in self.saved_exercises:
+                if saved_exercise["name"] == self.selected_weight_exercise.get():
+                    updated_exercise["user_exercise_id"] = saved_exercise["exercise_id"]
+                    break
 
         if self.on_update_exercise:
             saved_exercise = self.on_update_exercise(updated_exercise)

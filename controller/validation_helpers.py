@@ -108,7 +108,7 @@ def validate_cardio_exercise(exercise):
 
 # Check if the weight training exercise values are valid
 def validate_weight_exercise(exercise):
-    if not exercise.get("name"):
+    if not exercise.get("user_exercise_id") and not exercise.get("name"):
         return "Exercise name is required"
 
     weight_value, weight_error = parse_decimal_value(exercise.get("weight"))
