@@ -2,6 +2,7 @@ import customtkinter as ctk
 from view.sessions_view import SessionsView
 from view.profile_view import ProfileView
 from view.exercises_view import ExercisesView
+from view.progress_view import ProgressView
 from view.saved_exercises_view import SavedExercisesView
 
 class MenuView(ctk.CTkFrame):
@@ -26,6 +27,7 @@ class MenuView(ctk.CTkFrame):
         self.on_logout = None
         self.on_open_sessions = None
         self.on_open_profile = None
+        self.on_open_progress = None
         self.on_open_saved_exercises = None
 
         # State of the side menu (default closed)
@@ -86,6 +88,7 @@ class MenuView(ctk.CTkFrame):
 
         items = [
             ("My GYM", lambda: self.on_open_sessions()),
+            ("MY PROGRESS", lambda: self.on_open_progress()),
             ("MY EXERCISES", lambda: self.on_open_saved_exercises()),
             ("MY PROFILE", lambda: self.on_open_profile()),
             ("LOG OUT", lambda: self.on_logout())
@@ -174,6 +177,15 @@ class MenuView(ctk.CTkFrame):
         view.on_edit_exercise = edit_callback
         view.on_delete_exercise = delete_callback
         view.display_exercises(saved_exercises or [])
+        view.pack(fill="both", expand=True)
+
+    """
+    Called when user clicks "MY PROGRESS"
+    """
+    def show_progress(self, exercises=None, progress_entries=None, select_callback=None):
+        self.clear()
+        view = ProgressView(self.dynamic_container, exercises, progress_entries)
+        view.on_exercise_selected = select_callback
         view.pack(fill="both", expand=True)
 
     """

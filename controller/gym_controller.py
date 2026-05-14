@@ -24,6 +24,9 @@ class AppController:
         self.measurements = {}
         # Stores the user's saved exercises
         self.saved_exercises = []
+        # Stores the exercises and rows that will be used in the progress screen
+        self.progress_exercises = []
+        self.progress_entries = []
 
         self.restore_saved_session()
 
@@ -41,6 +44,8 @@ class AppController:
         self.current_exercises_view = None
         self.measurements = {}
         self.saved_exercises = []
+        self.progress_exercises = []
+        self.progress_entries = []
         view = LoginView(self.root)
 
         view.signup_label.bind("<Button-1>", lambda e: self.show_register())
@@ -68,6 +73,8 @@ class AppController:
         self.sessions = []
         self.exercises_by_session = {}
         self.saved_exercises = []
+        self.progress_exercises = []
+        self.progress_entries = []
         self.load_sessions()
         self.load_measurements()
         self.load_saved_exercises()
@@ -102,6 +109,11 @@ class AppController:
         view.on_open_profile = lambda: view.show_profile(
             self.handle_save_measurements,
             self.measurements
+        )
+        view.on_open_progress = lambda: view.show_progress(
+            self.progress_exercises,
+            self.progress_entries,
+            self.handle_progress_exercise_selected
         )
         view.on_open_saved_exercises = lambda: view.show_saved_exercises(
             self.saved_exercises,
@@ -223,6 +235,13 @@ class AppController:
             self.handle_add_saved_exercise,
             self.handle_edit_saved_exercise,
             self.handle_delete_saved_exercise
+        )
+
+    def show_progress(self):
+        self.current_view.show_progress(
+            self.progress_exercises,
+            self.progress_entries,
+            self.handle_progress_exercise_selected
         )
 
     def handle_save_measurements(self, measurements):
@@ -365,6 +384,10 @@ class AppController:
 
         self.show_saved_exercises()
 
+    def handle_progress_exercise_selected(self, exercise_data):
+        self.progress_entries = []
+        self.show_progress()
+
     def handle_edit_exercise(self, session_data, old_exercise, new_exercise):
         session_id = session_data["session_id"]
         if not self.current_token:
@@ -438,6 +461,8 @@ class AppController:
         self.sessions = []
         self.exercises_by_session = {}
         self.saved_exercises = []
+        self.progress_exercises = []
+        self.progress_entries = []
         self.load_sessions()
         self.load_measurements()
         self.load_saved_exercises()
@@ -493,6 +518,7 @@ class AppController:
             return
 
         self.saved_exercises = response["exercises"]
+        self.progress_exercises = response["exercises"]
 
     def handle_register(self, view):
         username = view.username_entry.get()
