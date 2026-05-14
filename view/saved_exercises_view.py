@@ -101,6 +101,10 @@ class SavedExercisesView(ctk.CTkFrame):
         self.edit_window = ctk.CTkToplevel(self)
         self.edit_window.title("Edit exercise")
         self.edit_window.geometry("320x160")
+        self.edit_window.transient(self)
+        self.edit_window.lift()
+        self.edit_window.focus()
+        self.edit_window.grab_set()
 
         self.edit_frame = ctk.CTkFrame(self.edit_window)
         self.edit_frame.pack(fill="both", expand=True, padx=20, pady=20)
