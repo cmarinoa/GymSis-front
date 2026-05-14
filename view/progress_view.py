@@ -2,11 +2,13 @@ import customtkinter as ctk
 
 
 class ProgressView(ctk.CTkFrame):
-    def __init__(self, parent, exercises=None, progress_entries=None):
+    def __init__(self, parent, exercises=None, progress_entries=None, selected_exercise_id=None):
         super().__init__(parent)
         self.exercises = exercises or []
         self.progress_entries = progress_entries or []
+        self.selected_exercise_id = selected_exercise_id
         self.selected_exercise = ctk.StringVar()
+        self.exercise_options = {}
         self.on_exercise_selected = None
 
         self.build_ui()
@@ -41,6 +43,7 @@ class ProgressView(ctk.CTkFrame):
 
     def display_exercises(self, exercises):
         self.exercises = exercises
+        self.exercise_options = {}
 
         if not exercises:
             self.selected_exercise.set("No exercises available")
@@ -50,9 +53,24 @@ class ProgressView(ctk.CTkFrame):
         exercise_names = []
 
         for exercise in exercises:
-            exercise_names.append(exercise["name"])
+            label = exercise["name"]
+
+            if not exercise.get("is_active", True):
+                label += " (archived)"
+
+            if label in self.exercise_options:
+                label += f" #{exercise['exercise_id']}"
+
+            exercise_names.append(label)
+            self.exercise_options[label] = exercise
 
         self.selected_exercise.set(exercise_names[0])
+
+        for label, exercise in self.exercise_options.items():
+            if exercise["exercise_id"] == self.selected_exercise_id:
+                self.selected_exercise.set(label)
+                break
+
         self.exercise_menu.configure(values=exercise_names, state="normal")
 
     def display_progress(self, progress_entries):
@@ -92,7 +110,7 @@ class ProgressView(ctk.CTkFrame):
         if not self.on_exercise_selected:
             return
 
-        for exercise in self.exercises:
-            if exercise["name"] == selected_name:
-                self.on_exercise_selected(exercise)
-                break
+        exercise = self.exercise_options.get(selected_name)
+
+        if exercise:
+            self.on_exercise_selected(exercise)

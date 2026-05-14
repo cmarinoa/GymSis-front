@@ -132,6 +132,16 @@ def get_saved_exercises(token):
     return send_get("/user-exercises/", token)
 
 
+# Get all exercises for the progress screen, including archived ones
+def get_progress_exercises(token):
+    return send_get("/user-exercises/?include_inactive=1", token)
+
+
+# Get the progress history for one saved exercise
+def get_progress(exercise_id, token):
+    return send_get(f"/progress/?exercise_id={exercise_id}", token)
+
+
 # Update one session in the backend
 def update_session(session_id, date, token):
     return send_put(f"/sessions/{session_id}/", {

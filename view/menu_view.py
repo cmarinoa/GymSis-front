@@ -182,9 +182,9 @@ class MenuView(ctk.CTkFrame):
     """
     Called when user clicks "MY PROGRESS"
     """
-    def show_progress(self, exercises=None, progress_entries=None, select_callback=None):
+    def show_progress(self, exercises=None, progress_entries=None, selected_exercise_id=None, select_callback=None):
         self.clear()
-        view = ProgressView(self.dynamic_container, exercises, progress_entries)
+        view = ProgressView(self.dynamic_container, exercises, progress_entries, selected_exercise_id)
         view.on_exercise_selected = select_callback
         view.pack(fill="both", expand=True)
 
