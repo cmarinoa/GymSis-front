@@ -1,6 +1,7 @@
 import json
 import os
 from urllib import request, error
+from urllib.parse import urlencode
 
 
 BASE_URL = "http://127.0.0.1:8000"
@@ -103,9 +104,15 @@ def register_exercise(exercise, token):
 
 
 # Get the exercises from one session
-def get_exercises(session_id, token):
+def get_exercises(session_id, token, search=None):
     # Requests all exercises that belong to one session
-    return send_get(f"/exercises/?session_id={session_id}", token)
+    query_params = {"session_id": session_id}
+
+    if search:
+        query_params["search"] = search
+
+    endpoint = "/exercises/?" + urlencode(query_params)
+    return send_get(endpoint, token)
 
 
 # Register the user's body measurements
@@ -128,8 +135,17 @@ def register_saved_exercise(name, token):
 
 
 # Get the user's saved exercises
-def get_saved_exercises(token):
-    return send_get("/user-exercises/", token)
+def get_saved_exercises(token, search=None):
+    endpoint = "/user-exercises/"
+    query_params = {}
+
+    if search:
+        query_params["search"] = search
+
+    if query_params:
+        endpoint += "?" + urlencode(query_params)
+
+    return send_get(endpoint, token)
 
 
 # Get all exercises for the progress screen, including archived ones

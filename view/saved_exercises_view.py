@@ -8,6 +8,7 @@ class SavedExercisesView(ctk.CTkFrame):
         self.on_add_exercise = None
         self.on_edit_exercise = None
         self.on_delete_exercise = None
+        self.on_search_exercises = None
 
         # Stores the exercises currently shown on screen
         self.saved_exercises = []
@@ -24,6 +25,24 @@ class SavedExercisesView(ctk.CTkFrame):
             font=("Arial", 24, "bold")
         )
         self.title.pack(pady=(0, 20))
+
+        self.search_frame = ctk.CTkFrame(self.container)
+        self.search_frame.pack(fill="x", pady=(0, 20))
+
+        self.search_entry = ctk.CTkEntry(
+            self.search_frame,
+            placeholder_text="Search exercises by name"
+        )
+        self.search_entry.pack(side="left", fill="x", expand=True, padx=(0, 10))
+        self.search_entry.bind("<Return>", lambda event: self.search_exercises())
+
+        self.search_button = ctk.CTkButton(
+            self.search_frame,
+            text="Search",
+            width=100,
+            command=self.search_exercises
+        )
+        self.search_button.pack(side="left")
 
         self.scrollable_frame = ctk.CTkScrollableFrame(self.container)
         self.scrollable_frame.pack(fill="both", expand=True)
@@ -78,6 +97,14 @@ class SavedExercisesView(ctk.CTkFrame):
             menu.configure(command=lambda action, e=exercise, m=menu: self.handle_exercise_action(action, e, m))
             menu.set("")
             menu.pack(side="right", padx=10)
+
+    def set_search_text(self, search_text):
+        self.search_entry.delete(0, "end")
+        self.search_entry.insert(0, search_text)
+
+    def search_exercises(self):
+        if self.on_search_exercises:
+            self.on_search_exercises(self.search_entry.get())
 
     def add_exercise(self):
         exercise_name = self.name_entry.get()

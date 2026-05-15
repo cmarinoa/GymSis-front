@@ -20,10 +20,16 @@ class AppController:
         self.exercises_by_session = {}
         # Keeps a reference to the exercises screen currently being shown
         self.current_exercises_view = None
+        # Stores the session currently open in the exercises screen
+        self.current_session_data = None
         # Stores the latest profile measurements loaded from the backend
         self.measurements = {}
         # Stores the user's saved exercises
         self.saved_exercises = []
+        # Keeps the current search text used in the saved exercises screen
+        self.saved_exercises_search = ""
+        # Keeps the current search text used in the session exercises screen
+        self.session_exercises_search = ""
         # Stores the exercises and rows that will be used in the progress screen
         self.progress_exercises = []
         self.progress_entries = []
@@ -43,8 +49,11 @@ class AppController:
         self.sessions = []
         self.exercises_by_session = {}
         self.current_exercises_view = None
+        self.current_session_data = None
         self.measurements = {}
         self.saved_exercises = []
+        self.saved_exercises_search = ""
+        self.session_exercises_search = ""
         self.progress_exercises = []
         self.progress_entries = []
         self.current_progress_exercise_id = None
@@ -75,6 +84,9 @@ class AppController:
         self.sessions = []
         self.exercises_by_session = {}
         self.saved_exercises = []
+        self.saved_exercises_search = ""
+        self.current_session_data = None
+        self.session_exercises_search = ""
         self.progress_exercises = []
         self.progress_entries = []
         self.current_progress_exercise_id = None
@@ -117,9 +129,11 @@ class AppController:
         view.on_open_progress = self.open_progress
         view.on_open_saved_exercises = lambda: view.show_saved_exercises(
             self.saved_exercises,
+            self.saved_exercises_search,
             self.handle_add_saved_exercise,
             self.handle_edit_saved_exercise,
-            self.handle_delete_saved_exercise
+            self.handle_delete_saved_exercise,
+            self.handle_saved_exercises_search
         )
 
         self.current_view = view
@@ -232,9 +246,11 @@ class AppController:
     def show_saved_exercises(self):
         self.current_view.show_saved_exercises(
             self.saved_exercises,
+            self.saved_exercises_search,
             self.handle_add_saved_exercise,
             self.handle_edit_saved_exercise,
-            self.handle_delete_saved_exercise
+            self.handle_delete_saved_exercise,
+            self.handle_saved_exercises_search
         )
 
     def show_progress(self):
@@ -283,15 +299,19 @@ class AppController:
 
     def handle_session_selected(self, session_data):
         # Load the latest exercises before opening the exercises screen
-        self.load_exercises(session_data["session_id"])
+        self.current_session_data = session_data
+        self.session_exercises_search = ""
+        self.load_exercises(session_data["session_id"], self.session_exercises_search)
         exercises = self.exercises_by_session.get(session_data["session_id"], [])
         self.current_exercises_view = self.current_view.show_exercises(
             session_data,
             exercises,
+            self.session_exercises_search,
             self.saved_exercises,
             lambda exercise: self.handle_add_exercise(session_data, exercise),
             lambda old_exercise, new_exercise: self.handle_edit_exercise(session_data, old_exercise, new_exercise),
-            lambda exercise: self.handle_delete_exercise(session_data, exercise)
+            lambda exercise: self.handle_delete_exercise(session_data, exercise),
+            self.handle_session_exercises_search
         )
 
     def handle_add_exercise(self, session_data, exercise):
@@ -336,12 +356,7 @@ class AppController:
             messagebox.showerror("Exercise error", response["error"])
             return False
 
-        self.saved_exercises.append({
-            "exercise_id": response["exercise_id"],
-            "name": response["name"],
-            "is_active": response.get("is_active", True)
-        })
-        self.saved_exercises.sort(key=lambda exercise: (exercise["name"].lower(), exercise["exercise_id"]))
+        self.load_saved_exercises(self.saved_exercises_search)
         self.load_progress_exercises()
 
         self.show_saved_exercises()
@@ -358,13 +373,7 @@ class AppController:
             messagebox.showerror("Exercise error", response["error"])
             return False
 
-        for saved_exercise in self.saved_exercises:
-            if saved_exercise["exercise_id"] == exercise_data["exercise_id"]:
-                saved_exercise["name"] = response["name"]
-                saved_exercise["is_active"] = response.get("is_active", True)
-                break
-
-        self.saved_exercises.sort(key=lambda exercise: (exercise["name"].lower(), exercise["exercise_id"]))
+        self.load_saved_exercises(self.saved_exercises_search)
         self.load_progress_exercises()
 
         self.show_saved_exercises()
@@ -389,13 +398,34 @@ class AppController:
             messagebox.showerror("Exercise error", response["error"])
             return
 
-        self.saved_exercises = [
-            exercise for exercise in self.saved_exercises
-            if exercise["exercise_id"] != exercise_data["exercise_id"]
-        ]
+        self.load_saved_exercises(self.saved_exercises_search)
         self.load_progress_exercises()
 
         self.show_saved_exercises()
+
+    def handle_saved_exercises_search(self, search_text):
+        self.saved_exercises_search = search_text.strip()
+        self.load_saved_exercises(self.saved_exercises_search)
+        self.show_saved_exercises()
+
+    def handle_session_exercises_search(self, search_text):
+        if not self.current_session_data:
+            return
+
+        self.session_exercises_search = search_text.strip()
+        session_id = self.current_session_data["session_id"]
+        self.load_exercises(session_id, self.session_exercises_search)
+        exercises = self.exercises_by_session.get(session_id, [])
+        self.current_exercises_view = self.current_view.show_exercises(
+            self.current_session_data,
+            exercises,
+            self.session_exercises_search,
+            self.saved_exercises,
+            lambda exercise: self.handle_add_exercise(self.current_session_data, exercise),
+            lambda old_exercise, new_exercise: self.handle_edit_exercise(self.current_session_data, old_exercise, new_exercise),
+            lambda exercise: self.handle_delete_exercise(self.current_session_data, exercise),
+            self.handle_session_exercises_search
+        )
 
     def handle_progress_exercise_selected(self, exercise_data):
         if not self.current_token:
@@ -485,6 +515,9 @@ class AppController:
         self.sessions = []
         self.exercises_by_session = {}
         self.saved_exercises = []
+        self.current_session_data = None
+        self.saved_exercises_search = ""
+        self.session_exercises_search = ""
         self.progress_exercises = []
         self.progress_entries = []
         self.current_progress_exercise_id = None
@@ -508,9 +541,9 @@ class AppController:
             # Create the local slot where that session's exercises will be stored
             self.exercises_by_session.setdefault(session["session_id"], [])
 
-    def load_exercises(self, session_id):
+    def load_exercises(self, session_id, search_text=None):
         # Requests all exercises from one selected session
-        response = get_exercises(session_id, self.current_token)
+        response = get_exercises(session_id, self.current_token, search_text)
 
         if "error" in response:
             messagebox.showerror("Exercise error", response["error"])
@@ -535,9 +568,9 @@ class AppController:
             "hips": response["hips"]
         }
 
-    def load_saved_exercises(self):
+    def load_saved_exercises(self, search_text=None):
         # Requests the saved exercises that belong to the logged in user
-        response = get_saved_exercises(self.current_token)
+        response = get_saved_exercises(self.current_token, search_text)
 
         if "error" in response:
             messagebox.showerror("Exercise error", response["error"])

@@ -12,6 +12,7 @@ class ExercisesView(ctk.CTkFrame):
         self.on_add_exercise = None
         self.on_update_exercise = None
         self.on_delete_exercise = None
+        self.on_search_exercises = None
         # Local copy used to redraw the list after opening details
         self.exercises = []
 
@@ -28,6 +29,24 @@ class ExercisesView(ctk.CTkFrame):
             font=("Arial", 18, "bold")
         )
         self.title.pack(side="left", padx=10)
+
+        self.search_frame = ctk.CTkFrame(self)
+        self.search_frame.pack(fill="x", padx=20, pady=(0, 10))
+
+        self.search_entry = ctk.CTkEntry(
+            self.search_frame,
+            placeholder_text="Search exercises by name"
+        )
+        self.search_entry.pack(side="left", fill="x", expand=True, padx=(0, 10))
+        self.search_entry.bind("<Return>", lambda event: self.search_exercises())
+
+        self.search_button = ctk.CTkButton(
+            self.search_frame,
+            text="Search",
+            width=100,
+            command=self.search_exercises
+        )
+        self.search_button.pack(side="left")
 
         # Scrollable container for exercises
         self.scrollable_frame = ctk.CTkScrollableFrame(self)
@@ -53,6 +72,14 @@ class ExercisesView(ctk.CTkFrame):
                 command=lambda e=exercise: self.edit_exercise(e)
             )
             button.pack(fill="x", pady=5)
+
+    def set_search_text(self, search_text):
+        self.search_entry.delete(0, "end")
+        self.search_entry.insert(0, search_text)
+
+    def search_exercises(self):
+        if self.on_search_exercises:
+            self.on_search_exercises(self.search_entry.get())
 
     def get_exercise_text(self, exercise):
         if exercise["exercise_type"] == "cardio":

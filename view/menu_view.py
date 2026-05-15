@@ -170,12 +170,22 @@ class MenuView(ctk.CTkFrame):
     """
     Called when user clicks "MY EXERCISES"
     """
-    def show_saved_exercises(self, saved_exercises=None, add_callback=None, edit_callback=None, delete_callback=None):
+    def show_saved_exercises(
+        self,
+        saved_exercises=None,
+        search_text="",
+        add_callback=None,
+        edit_callback=None,
+        delete_callback=None,
+        search_callback=None
+    ):
         self.clear()
         view = SavedExercisesView(self.dynamic_container, self.username)
         view.on_add_exercise = add_callback
         view.on_edit_exercise = edit_callback
         view.on_delete_exercise = delete_callback
+        view.on_search_exercises = search_callback
+        view.set_search_text(search_text)
         view.display_exercises(saved_exercises or [])
         view.pack(fill="both", expand=True)
 
@@ -195,10 +205,12 @@ class MenuView(ctk.CTkFrame):
         self,
         session_data,
         exercises=None,
+        search_text="",
         saved_exercises=None,
         add_exercise_callback=None,
         update_exercise_callback=None,
-        delete_exercise_callback=None
+        delete_exercise_callback=None,
+        search_exercises_callback=None
     ):
         self.clear()
         view = ExercisesView(self.dynamic_container, self.username, session_data, saved_exercises or [])
@@ -213,6 +225,8 @@ class MenuView(ctk.CTkFrame):
         view.on_add_exercise = add_exercise_callback
         view.on_update_exercise = update_exercise_callback
         view.on_delete_exercise = delete_exercise_callback
+        view.on_search_exercises = search_exercises_callback
+        view.set_search_text(search_text)
         view.display_exercises(exercises or [])
         view.pack(fill="both", expand=True)
         return view
