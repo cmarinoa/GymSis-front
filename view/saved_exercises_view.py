@@ -35,6 +35,7 @@ class SavedExercisesView(ctk.CTkFrame):
         )
         self.search_entry.pack(side="left", fill="x", expand=True, padx=(0, 10))
         self.search_entry.bind("<Return>", lambda event: self.search_exercises())
+        self.search_entry.bind("<KeyRelease>", lambda event: self.search_exercises())
 
         self.search_button = ctk.CTkButton(
             self.search_frame,

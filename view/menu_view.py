@@ -188,6 +188,7 @@ class MenuView(ctk.CTkFrame):
         view.set_search_text(search_text)
         view.display_exercises(saved_exercises or [])
         view.pack(fill="both", expand=True)
+        return view
 
     """
     Called when user clicks "MY PROGRESS"

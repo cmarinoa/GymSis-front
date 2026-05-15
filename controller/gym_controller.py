@@ -20,6 +20,8 @@ class AppController:
         self.exercises_by_session = {}
         # Keeps a reference to the exercises screen currently being shown
         self.current_exercises_view = None
+        # Keeps a reference to the saved exercises screen currently being shown
+        self.current_saved_exercises_view = None
         # Stores the session currently open in the exercises screen
         self.current_session_data = None
         # Stores the latest profile measurements loaded from the backend
@@ -49,6 +51,7 @@ class AppController:
         self.sessions = []
         self.exercises_by_session = {}
         self.current_exercises_view = None
+        self.current_saved_exercises_view = None
         self.current_session_data = None
         self.measurements = {}
         self.saved_exercises = []
@@ -85,6 +88,7 @@ class AppController:
         self.exercises_by_session = {}
         self.saved_exercises = []
         self.saved_exercises_search = ""
+        self.current_saved_exercises_view = None
         self.current_session_data = None
         self.session_exercises_search = ""
         self.progress_exercises = []
@@ -112,6 +116,7 @@ class AppController:
         view = MenuView(self.root, username)
         self.current_user = username
         self.current_exercises_view = None
+        self.current_saved_exercises_view = None
 
         # Connect each menu action with the matching controller method
         view.on_logout = self.handle_logout
@@ -127,14 +132,7 @@ class AppController:
             self.measurements
         )
         view.on_open_progress = self.open_progress
-        view.on_open_saved_exercises = lambda: view.show_saved_exercises(
-            self.saved_exercises,
-            self.saved_exercises_search,
-            self.handle_add_saved_exercise,
-            self.handle_edit_saved_exercise,
-            self.handle_delete_saved_exercise,
-            self.handle_saved_exercises_search
-        )
+        view.on_open_saved_exercises = self.show_saved_exercises
 
         self.current_view = view
         view.pack(fill="both", expand=True)
@@ -244,7 +242,8 @@ class AppController:
         )
 
     def show_saved_exercises(self):
-        self.current_view.show_saved_exercises(
+        self.current_exercises_view = None
+        self.current_saved_exercises_view = self.current_view.show_saved_exercises(
             self.saved_exercises,
             self.saved_exercises_search,
             self.handle_add_saved_exercise,
@@ -299,6 +298,7 @@ class AppController:
 
     def handle_session_selected(self, session_data):
         # Load the latest exercises before opening the exercises screen
+        self.current_saved_exercises_view = None
         self.current_session_data = session_data
         self.session_exercises_search = ""
         self.load_exercises(session_data["session_id"], self.session_exercises_search)
@@ -406,7 +406,9 @@ class AppController:
     def handle_saved_exercises_search(self, search_text):
         self.saved_exercises_search = search_text.strip()
         self.load_saved_exercises(self.saved_exercises_search)
-        self.show_saved_exercises()
+
+        if self.current_saved_exercises_view:
+            self.current_saved_exercises_view.display_exercises(self.saved_exercises)
 
     def handle_session_exercises_search(self, search_text):
         if not self.current_session_data:
@@ -415,17 +417,11 @@ class AppController:
         self.session_exercises_search = search_text.strip()
         session_id = self.current_session_data["session_id"]
         self.load_exercises(session_id, self.session_exercises_search)
-        exercises = self.exercises_by_session.get(session_id, [])
-        self.current_exercises_view = self.current_view.show_exercises(
-            self.current_session_data,
-            exercises,
-            self.session_exercises_search,
-            self.saved_exercises,
-            lambda exercise: self.handle_add_exercise(self.current_session_data, exercise),
-            lambda old_exercise, new_exercise: self.handle_edit_exercise(self.current_session_data, old_exercise, new_exercise),
-            lambda exercise: self.handle_delete_exercise(self.current_session_data, exercise),
-            self.handle_session_exercises_search
-        )
+
+        if self.current_exercises_view:
+            self.current_exercises_view.display_exercises(
+                self.exercises_by_session.get(session_id, [])
+            )
 
     def handle_progress_exercise_selected(self, exercise_data):
         if not self.current_token:
@@ -515,6 +511,7 @@ class AppController:
         self.sessions = []
         self.exercises_by_session = {}
         self.saved_exercises = []
+        self.current_saved_exercises_view = None
         self.current_session_data = None
         self.saved_exercises_search = ""
         self.session_exercises_search = ""
