@@ -141,7 +141,17 @@ class MenuView(ctk.CTkFrame):
     callback: function to call when a session is selected
     """
 
-    def show_sessions(self, callback=None, add_callback=None, sessions=None, edit_callback=None, delete_callback=None):
+    def show_sessions(
+        self,
+        callback=None,
+        add_callback=None,
+        sessions=None,
+        edit_callback=None,
+        delete_callback=None,
+        date_from="",
+        date_to="",
+        filter_callback=None
+    ):
         # Save callbacks so they can be reused when changing screens
         self._session_callback = callback  # store it for later use
         self._add_session_callback = add_callback
@@ -154,8 +164,11 @@ class MenuView(ctk.CTkFrame):
         view.on_add_session = self._add_session_callback
         view.on_edit_session = self._edit_session_callback
         view.on_delete_session = self._delete_session_callback
+        view.on_filter_sessions = filter_callback
+        view.set_filter_dates(date_from, date_to)
         view.display_sessions(self._sessions)
         view.pack(fill="both", expand=True)
+        return view
 
     """
     Called when user clicks "MY PROFILE"

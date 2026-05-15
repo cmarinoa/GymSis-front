@@ -1,6 +1,6 @@
 import calendar
 import customtkinter as ctk
-from datetime import date
+from datetime import date, datetime
 
 class SessionsView(ctk.CTkFrame):
     def __init__(self, parent, username):
@@ -10,14 +10,55 @@ class SessionsView(ctk.CTkFrame):
         self.on_add_session = None  # Callback for adding a new session
         self.on_edit_session = None
         self.on_delete_session = None
+        self.on_filter_sessions = None
         # Stores the function that receives the selected date
         self.calendar_callback = None
         self.current_year = date.today().year
         self.current_month = date.today().month
+        # Stores the dates currently selected in the filter area
+        self.date_from = ""
+        self.date_to = ""
 
         # Title
         self.title = ctk.CTkLabel(self, text=f"{self.username}'s sessions", font=("Arial", 20, "bold"))
         self.title.pack(pady=10)
+
+        self.filter_frame = ctk.CTkFrame(self)
+        self.filter_frame.pack(fill="x", padx=20, pady=(0, 10))
+
+        self.from_row = ctk.CTkFrame(self.filter_frame)
+        self.from_row.pack(fill="x", padx=10, pady=(10, 5))
+
+        self.from_label = ctk.CTkLabel(self.from_row, text="From date", width=80, anchor="w")
+        self.from_label.pack(side="left", padx=(0, 10))
+
+        self.from_button = ctk.CTkButton(
+            self.from_row,
+            text="Select date",
+            command=lambda: self.open_calendar(self.set_from_date)
+        )
+        self.from_button.pack(side="left", fill="x", expand=True)
+
+        self.to_row = ctk.CTkFrame(self.filter_frame)
+        self.to_row.pack(fill="x", padx=10, pady=5)
+
+        self.to_label = ctk.CTkLabel(self.to_row, text="To date", width=80, anchor="w")
+        self.to_label.pack(side="left", padx=(0, 10))
+
+        self.to_button = ctk.CTkButton(
+            self.to_row,
+            text="Select date",
+            command=lambda: self.open_calendar(self.set_to_date)
+        )
+        self.to_button.pack(side="left", fill="x", expand=True)
+
+        self.search_button = ctk.CTkButton(
+            self.filter_frame,
+            text="Search",
+            width=120,
+            command=self.apply_filters
+        )
+        self.search_button.pack(pady=(5, 10))
 
         # Scrollable container
         self.scrollable_frame = ctk.CTkScrollableFrame(self)
@@ -26,6 +67,16 @@ class SessionsView(ctk.CTkFrame):
         # Add session button
         self.add_button = ctk.CTkButton(self, text="Add session", command=self.add_session)
         self.add_button.pack(pady=10)
+
+    def format_date_for_display(self, date_text):
+        if not date_text:
+            return ""
+
+        try:
+            parsed_date = datetime.strptime(date_text, "%Y-%m-%d")
+            return parsed_date.strftime("%d/%m/%Y")
+        except ValueError:
+            return date_text
 
     def display_sessions(self, sessions):
         # Clear previous widgets
@@ -59,6 +110,34 @@ class SessionsView(ctk.CTkFrame):
             self.open_calendar(self.on_add_session)
         else:
             print("To be implemented")
+
+    def set_filter_dates(self, date_from, date_to):
+        self.date_from = date_from or ""
+        self.date_to = date_to or ""
+        self.update_filter_buttons()
+
+    def update_filter_buttons(self):
+        if self.date_from:
+            self.from_button.configure(text=self.format_date_for_display(self.date_from))
+        else:
+            self.from_button.configure(text="Select date")
+
+        if self.date_to:
+            self.to_button.configure(text=self.format_date_for_display(self.date_to))
+        else:
+            self.to_button.configure(text="Select date")
+
+    def set_from_date(self, selected_date):
+        self.date_from = selected_date
+        self.update_filter_buttons()
+
+    def set_to_date(self, selected_date):
+        self.date_to = selected_date
+        self.update_filter_buttons()
+
+    def apply_filters(self):
+        if self.on_filter_sessions:
+            self.on_filter_sessions(self.date_from, self.date_to)
 
     def handle_session_action(self, action, session, menu):
         # Reset the visible text so the control keeps looking like an arrow-only menu

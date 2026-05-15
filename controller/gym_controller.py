@@ -18,6 +18,8 @@ class AppController:
         self.sessions = []
         # Groups exercises by session number
         self.exercises_by_session = {}
+        # Keeps a reference to the sessions screen currently being shown
+        self.current_sessions_view = None
         # Keeps a reference to the exercises screen currently being shown
         self.current_exercises_view = None
         # Keeps a reference to the saved exercises screen currently being shown
@@ -32,6 +34,9 @@ class AppController:
         self.saved_exercises_search = ""
         # Keeps the current search text used in the session exercises screen
         self.session_exercises_search = ""
+        # Keeps the current dates selected in the sessions filter area
+        self.sessions_date_from = ""
+        self.sessions_date_to = ""
         # Stores the exercises and rows that will be used in the progress screen
         self.progress_exercises = []
         self.progress_entries = []
@@ -50,6 +55,7 @@ class AppController:
         self.current_token = None
         self.sessions = []
         self.exercises_by_session = {}
+        self.current_sessions_view = None
         self.current_exercises_view = None
         self.current_saved_exercises_view = None
         self.current_session_data = None
@@ -57,6 +63,8 @@ class AppController:
         self.saved_exercises = []
         self.saved_exercises_search = ""
         self.session_exercises_search = ""
+        self.sessions_date_from = ""
+        self.sessions_date_to = ""
         self.progress_exercises = []
         self.progress_entries = []
         self.current_progress_exercise_id = None
@@ -86,11 +94,14 @@ class AppController:
         self.current_token = saved_token
         self.sessions = []
         self.exercises_by_session = {}
+        self.current_sessions_view = None
         self.saved_exercises = []
         self.saved_exercises_search = ""
         self.current_saved_exercises_view = None
         self.current_session_data = None
         self.session_exercises_search = ""
+        self.sessions_date_from = ""
+        self.sessions_date_to = ""
         self.progress_exercises = []
         self.progress_entries = []
         self.current_progress_exercise_id = None
@@ -120,13 +131,7 @@ class AppController:
 
         # Connect each menu action with the matching controller method
         view.on_logout = self.handle_logout
-        view.on_open_sessions = lambda: view.show_sessions(
-            self.handle_session_selected,
-            self.handle_add_session,
-            self.sessions,
-            self.handle_edit_session,
-            self.handle_delete_session
-        )
+        view.on_open_sessions = self.show_sessions
         view.on_open_profile = lambda: view.show_profile(
             self.handle_save_measurements,
             self.measurements
@@ -138,25 +143,22 @@ class AppController:
         view.pack(fill="both", expand=True)
 
         # Show the sessions screen first after login
-        view.show_sessions(
+        self.show_sessions()
+
+    def show_sessions(self):
+        self.current_exercises_view = None
+        self.current_saved_exercises_view = None
+        self.current_session_data = None
+        self.current_sessions_view = self.current_view.show_sessions(
             self.handle_session_selected,
             self.handle_add_session,
             self.sessions,
             self.handle_edit_session,
-            self.handle_delete_session
+            self.handle_delete_session,
+            self.sessions_date_from,
+            self.sessions_date_to,
+            self.handle_session_filters
         )
-
-    def show_sessions(self):
-        self.clear_view()
-        view = SessionsView(self.root, self.current_user)
-        view.on_session_selected = self.handle_session_selected
-        view.on_add_session = self.handle_add_session
-        view.on_edit_session = self.handle_edit_session
-        view.on_delete_session = self.handle_delete_session
-        view.display_sessions(self.sessions)
-
-        self.current_view = view
-        view.pack(fill="both", expand=True)
 
     def handle_add_session(self, session_date):
         if not self.current_token:
@@ -173,12 +175,15 @@ class AppController:
         # Reload sessions so the visible numbering stays correct for this user
         self.load_sessions()
 
-        self.current_view.show_sessions(
+        self.current_sessions_view = self.current_view.show_sessions(
             self.handle_session_selected,
             self.handle_add_session,
             self.sessions,
             self.handle_edit_session,
-            self.handle_delete_session
+            self.handle_delete_session,
+            self.sessions_date_from,
+            self.sessions_date_to,
+            self.handle_session_filters
         )
 
     def handle_edit_session(self, session_data, new_date):
@@ -195,12 +200,15 @@ class AppController:
         # Reload sessions because changing the date may change the visible order
         self.load_sessions()
 
-        self.current_view.show_sessions(
+        self.current_sessions_view = self.current_view.show_sessions(
             self.handle_session_selected,
             self.handle_add_session,
             self.sessions,
             self.handle_edit_session,
-            self.handle_delete_session
+            self.handle_delete_session,
+            self.sessions_date_from,
+            self.sessions_date_to,
+            self.handle_session_filters
         )
 
     def handle_delete_session(self, session_data):
@@ -227,12 +235,15 @@ class AppController:
         # Reload sessions because deleting one changes the visible numbering
         self.load_sessions()
 
-        self.current_view.show_sessions(
+        self.current_sessions_view = self.current_view.show_sessions(
             self.handle_session_selected,
             self.handle_add_session,
             self.sessions,
             self.handle_edit_session,
-            self.handle_delete_session
+            self.handle_delete_session,
+            self.sessions_date_from,
+            self.sessions_date_to,
+            self.handle_session_filters
         )
 
     def show_profile(self):
@@ -242,6 +253,7 @@ class AppController:
         )
 
     def show_saved_exercises(self):
+        self.current_sessions_view = None
         self.current_exercises_view = None
         self.current_saved_exercises_view = self.current_view.show_saved_exercises(
             self.saved_exercises,
@@ -298,6 +310,7 @@ class AppController:
 
     def handle_session_selected(self, session_data):
         # Load the latest exercises before opening the exercises screen
+        self.current_sessions_view = None
         self.current_saved_exercises_view = None
         self.current_session_data = session_data
         self.session_exercises_search = ""
@@ -423,6 +436,16 @@ class AppController:
                 self.exercises_by_session.get(session_id, [])
             )
 
+    def handle_session_filters(self, date_from, date_to):
+        self.sessions_date_from = date_from
+        self.sessions_date_to = date_to
+
+        if self.current_sessions_view:
+            self.current_sessions_view.set_filter_dates(
+                self.sessions_date_from,
+                self.sessions_date_to
+            )
+
     def handle_progress_exercise_selected(self, exercise_data):
         if not self.current_token:
             messagebox.showerror("Exercise error", "You must log in first")
@@ -510,6 +533,7 @@ class AppController:
         # Load the user's saved data before opening the main menu
         self.sessions = []
         self.exercises_by_session = {}
+        self.current_sessions_view = None
         self.saved_exercises = []
         self.current_saved_exercises_view = None
         self.current_session_data = None
