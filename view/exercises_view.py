@@ -104,6 +104,10 @@ class ExercisesView(ctk.CTkFrame):
         self.form_window = ctk.CTkToplevel(self)
         self.form_window.title("Add exercise")
         self.form_window.geometry("360x420")
+        self.form_window.transient(self)
+        self.form_window.lift()
+        self.form_window.focus()
+        self.form_window.grab_set()
 
         self.form_frame = ctk.CTkFrame(self.form_window)
         self.form_frame.pack(fill="both", expand=True, padx=20, pady=20)

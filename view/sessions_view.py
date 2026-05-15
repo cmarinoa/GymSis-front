@@ -155,6 +155,10 @@ class SessionsView(ctk.CTkFrame):
         self.calendar_window = ctk.CTkToplevel(self)
         self.calendar_window.title("Select date")
         self.calendar_window.geometry("320x300")
+        self.calendar_window.transient(self)
+        self.calendar_window.lift()
+        self.calendar_window.focus()
+        self.calendar_window.grab_set()
 
         self.calendar_frame = ctk.CTkFrame(self.calendar_window)
         self.calendar_frame.pack(fill="both", expand=True, padx=10, pady=10)
