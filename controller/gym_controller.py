@@ -173,7 +173,7 @@ class AppController:
             return
 
         # Reload sessions so the visible numbering stays correct for this user
-        self.load_sessions()
+        self.load_sessions(self.sessions_date_from, self.sessions_date_to)
 
         self.current_sessions_view = self.current_view.show_sessions(
             self.handle_session_selected,
@@ -198,7 +198,7 @@ class AppController:
             return
 
         # Reload sessions because changing the date may change the visible order
-        self.load_sessions()
+        self.load_sessions(self.sessions_date_from, self.sessions_date_to)
 
         self.current_sessions_view = self.current_view.show_sessions(
             self.handle_session_selected,
@@ -233,7 +233,7 @@ class AppController:
 
         self.exercises_by_session.pop(session_id, None)
         # Reload sessions because deleting one changes the visible numbering
-        self.load_sessions()
+        self.load_sessions(self.sessions_date_from, self.sessions_date_to)
 
         self.current_sessions_view = self.current_view.show_sessions(
             self.handle_session_selected,
@@ -439,12 +439,14 @@ class AppController:
     def handle_session_filters(self, date_from, date_to):
         self.sessions_date_from = date_from
         self.sessions_date_to = date_to
+        loaded = self.load_sessions(self.sessions_date_from, self.sessions_date_to)
 
-        if self.current_sessions_view:
+        if loaded and self.current_sessions_view:
             self.current_sessions_view.set_filter_dates(
                 self.sessions_date_from,
                 self.sessions_date_to
             )
+            self.current_sessions_view.display_sessions(self.sessions)
 
     def handle_progress_exercise_selected(self, exercise_data):
         if not self.current_token:
@@ -539,6 +541,8 @@ class AppController:
         self.current_session_data = None
         self.saved_exercises_search = ""
         self.session_exercises_search = ""
+        self.sessions_date_from = ""
+        self.sessions_date_to = ""
         self.progress_exercises = []
         self.progress_entries = []
         self.current_progress_exercise_id = None
@@ -548,19 +552,21 @@ class AppController:
         self.load_progress_exercises()
         self.show_menu(response["name"])
 
-    def load_sessions(self):
+    def load_sessions(self, date_from=None, date_to=None):
         # Requests every session that belongs to the logged in user
-        response = get_sessions(self.current_token)
+        response = get_sessions(self.current_token, date_from, date_to)
 
         if "error" in response:
             messagebox.showerror("Session error", response["error"])
-            return
+            return False
 
         self.sessions = response["sessions"]
 
         for session in self.sessions:
             # Create the local slot where that session's exercises will be stored
             self.exercises_by_session.setdefault(session["session_id"], [])
+
+        return True
 
     def load_exercises(self, session_id, search_text=None):
         # Requests all exercises from one selected session

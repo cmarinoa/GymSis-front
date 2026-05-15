@@ -92,9 +92,21 @@ def register_session(date, token):
 
 
 # Get the logged in user's sessions
-def get_sessions(token):
+def get_sessions(token, date_from=None, date_to=None):
     # Loads every session that belongs to the logged in user
-    return send_get("/sessions/", token)
+    endpoint = "/sessions/"
+    query_params = {}
+
+    if date_from:
+        query_params["date_from"] = date_from
+
+    if date_to:
+        query_params["date_to"] = date_to
+
+    if query_params:
+        endpoint += "?" + urlencode(query_params)
+
+    return send_get(endpoint, token)
 
 
 # Register a new exercise in the backend
